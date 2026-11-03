@@ -36,3 +36,18 @@ def ready(book_id):
             return b
         time.sleep(0.05)
     pytest.fail("Processing did not finish")
+
+
+def test_health_and_auth():
+    assert client.get("/api/health").json()["status"] == "ok"
+    assert client.get("/api/books").status_code == 401
+    assert (
+        client.get("/api/books", headers={"Authorization": "Bearer x"}).status_code
+        == 401
+    )
+
+
+def test_invalid_pdf_is_cleaned_up():
+    before = set(DATA.iterdir())
+    assert upload(b"not a PDF").status_code == 400
+    assert set(DATA.iterdir()) == before
