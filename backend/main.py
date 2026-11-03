@@ -684,3 +684,60 @@ def edit_line(
         line.update(edit.model_dump(), assignment="reviewed")
         save(b)
     return b
+
+
+SPEECH_LOCK = threading.Lock()
+
+
+@app.get("/api/books/{book_id}/speech/{line_id}")
+def speech(
+    book_id: str, line_id: str, authorization: str | None = Header(default=None)
+):
+    b = get_book(book_id, owner(authorization))
+    l = next((l for p in b["pages"] for l in p["lines"] if l["id"] == line_id), None)
+    if not l:
+        raise HTTPException(404, "Dialogue not found.")
+    c = next(c for c in b["characters"] if c["id"] == l["character"])
+    v = VOICES[c["voice"]]
+    pitch, rate = EMOTIONS[l["emotion"]]
+    # Edited age/presentation guide the voice without treating appearance as fact.
+    pitch += (
+        8
+        if c.get("age") in ("child", "teen")
+        else -6
+        if c.get("age") == "older adult"
+        else 0
+    )
+    key = hashlib.sha256(
+        json.dumps(
+            [
+                l["text"],
+                c,
+                l["emotion"],
+                "kokoro-v1" if neural_available() else "espeak-v1",
+            ]
+        ).encode()
+    ).hexdigest()
+    out = DATA / book_id / f"{key}.wav"
+    if not neural_available() and not (
+        shutil.which("espeak-ng") or shutil.which("espeak")
+    ):
+        raise HTTPException(503, "The speech engine is unavailable on this server.")
+    with SPEECH_LOCK:
+        if not out.exists():
+            try:
+                synthesize(
+                    l["text"],
+                    c["voice"],
+                    l["emotion"],
+                    c.get("age"),
+                    out,
+                    (v, pitch, rate),
+                )
+            except Exception:
+                LOG.exception("Speech generation failed")
+                out.unlink(missing_ok=True)
+                raise HTTPException(503, "Narration failed. Try again.")
+    return FileResponse(
+        out, media_type="audio/wav", headers={"Cache-Control": "private, max-age=86400"}
+    )
