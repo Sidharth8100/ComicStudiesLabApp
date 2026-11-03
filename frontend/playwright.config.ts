@@ -13,5 +13,5 @@ export default defineConfig({
     },
     screenshot: "only-on-failure",
   },
-  reporter: "list",
+  reporter: process.env.CI ? [["list"], ["github"]] : "list",
 });
