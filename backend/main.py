@@ -459,3 +459,90 @@ def books(authorization: str | None = Header(default=None)):
             "SELECT body FROM books WHERE owner=? ORDER BY rowid DESC", (who,)
         ).fetchall()
     return [json.loads(r["body"]) for r in rows]
+
+
+async def store_pdf(file, who):
+    with LOCK, connect() as c:
+        rows = [
+            json.loads(r["body"])
+            for r in c.execute(
+                "SELECT body FROM books WHERE owner=?", (who,)
+            ).fetchall()
+        ]
+        if len(rows) >= 20:
+            raise HTTPException(
+                429,
+                "Your library is full (20 comics). Delete a comic before uploading another.",
+            )
+        if sum(b["status"] in ("queued", "processing") for b in rows) >= 2:
+            raise HTTPException(
+                429, "Two comics are already processing. Wait for one to finish."
+            )
+        total = c.execute("SELECT COUNT(*) FROM books").fetchone()[0]
+        active = sum(
+            json.loads(r["body"])["status"] in ("queued", "processing")
+            for r in c.execute("SELECT body FROM books")
+        )
+        if active >= 8:
+            raise HTTPException(
+                503,
+                "The server is processing several stories. Please try again shortly.",
+            )
+        if total >= 500:
+            raise HTTPException(503, "This instance is at capacity.")
+    book_id = uuid.uuid4().hex
+    folder = DATA / book_id
+    folder.mkdir()
+    try:
+        size = 0
+        with (folder / "source.pdf").open("wb") as f:
+            while chunk := await file.read(1024 * 1024):
+                size += len(chunk)
+                if size > MAX_BYTES:
+                    raise HTTPException(413, "Choose a PDF smaller than 40 MB.")
+                f.write(chunk)
+        try:
+            with fitz.open(folder / "source.pdf") as doc:
+                if not doc.is_pdf:
+                    raise HTTPException(400, "Please upload a PDF file.")
+                if doc.is_encrypted:
+                    raise HTTPException(400, "Unlock this PDF before uploading it.")
+                if len(doc) < 1 or len(doc) > MAX_PAGES:
+                    raise HTTPException(400, "PDFs must contain 1–100 pages.")
+                if any(
+                    p.rect.width <= 0
+                    or p.rect.height <= 0
+                    or p.rect.width > 10000
+                    or p.rect.height > 10000
+                    or p.rect.height / p.rect.width > 5
+                    for p in doc
+                ):
+                    raise HTTPException(
+                        400, "This PDF has unsupported page dimensions."
+                    )
+                count = len(doc)
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(400, "This file is not a readable PDF.")
+        name = Path(file.filename or "Untitled comic.pdf").stem[:100]
+        b = {
+            "id": book_id,
+            "title": name,
+            "created": time.time(),
+            "status": "queued",
+            "progress": 0,
+            "pageCount": count,
+            "pages": [],
+            "characters": [],
+            "notice": None,
+            "demo": False,
+        }
+        save(b, who)
+        POOL.submit(analyze, book_id)
+        return b
+    except Exception:
+        shutil.rmtree(folder, ignore_errors=True)
+        raise
+    finally:
+        await file.close()
