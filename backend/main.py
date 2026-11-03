@@ -553,3 +553,8 @@ async def upload(
     file: UploadFile = File(...), authorization: str | None = Header(default=None)
 ):
     return await store_pdf(file, owner(authorization))
+
+
+@app.get("/api/books/{book_id}")
+def book(book_id: str, authorization: str | None = Header(default=None)):
+    return get_book(book_id, owner(authorization))
