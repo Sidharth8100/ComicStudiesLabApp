@@ -827,3 +827,122 @@ small {
   background: #e8eddd;
   transform: translateY(-3px);
 }
+.import-icon {
+  border-radius: 50%;
+  background: #e4e9da;
+  width: 47px;
+  height: 47px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 15px;
+  color: #64765c;
+}
+.import-card h3 {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.18;
+}
+.import-card p {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.65;
+  margin-top: 12px;
+}
+.import-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  border-bottom: 1px solid #a5af97;
+  padding-bottom: 4px;
+  margin-top: 16px;
+}
+.import-card > small {
+  font-size: 6px;
+  color: #626b5d;
+  letter-spacing: 1px;
+  margin-top: 17px;
+}
+.uploaded-cover {
+  height: 285px;
+  background: #e8e7dd;
+  border-radius: 9px;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+}
+.cover-button {
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+.cover-button > img {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  box-shadow: 7px 7px 15px #0002;
+}
+.cover-open {
+  position: absolute;
+  inset: auto 10px 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  padding: 10px;
+  border-radius: 6px;
+  background: #faf9edeb;
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.cover-button:hover .cover-open {
+  opacity: 1;
+}
+.cover-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  color: #758168;
+  font-size: 11px;
+}
+.card-buttons {
+  display: flex;
+  gap: 5px;
+  position: absolute;
+  right: 9px;
+  top: 9px;
+}
+.card-buttons .icon-button {
+  background: #fffef2db;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+}
+.empty-copy {
+  margin: 20px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.library-footer {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-top: 1px solid var(--line);
+  padding: 24px 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+.footer-brand {
+  font-family: "Manrope", sans-serif;
+  font-size: 20px;
+  color: #476146;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
