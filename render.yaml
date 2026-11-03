@@ -14,7 +14,5 @@ services:
         value: /data
       - key: PANEL_MODEL_DIR
         value: /opt/panel-models
-      - key: PANEL_VISION_KEY
-        sync: false
       - key: PANEL_VISION_MODEL
         value: gpt-4o-mini

@@ -18,12 +18,14 @@ from concurrent.futures import ThreadPoolExecutor
 import cv2
 import fitz
 import httpx
-import numpy as np
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from backend.speech import synthesize, neural_available
+from backend.voice_catalog import VOICES, EMOTIONS, PROSODY, allocate_voice
+from backend.sentiment import analyze_sentiment
+from backend.casting import CharacterRegistry, PageGeometry, visual_available
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,51 +39,6 @@ LOCK = threading.RLock()
 OCR_LOCK = threading.Lock()
 READER = None
 LOG = logging.getLogger("panel")
-VOICES = {
-    "warm": {
-        "name": "Atlas",
-        "description": "Warm · grounded",
-        "voice": "en-us",
-        "pitch": 38,
-        "rate": 155,
-    },
-    "bright": {
-        "name": "Juniper",
-        "description": "Bright · youthful",
-        "voice": "en-us+f3",
-        "pitch": 62,
-        "rate": 170,
-    },
-    "deep": {
-        "name": "Orion",
-        "description": "Deep · measured",
-        "voice": "en-gb+m3",
-        "pitch": 25,
-        "rate": 140,
-    },
-    "soft": {
-        "name": "Sage",
-        "description": "Soft · reflective",
-        "voice": "en-gb+f2",
-        "pitch": 48,
-        "rate": 145,
-    },
-    "electric": {
-        "name": "Echo",
-        "description": "Crisp · animated",
-        "voice": "en-us+m4",
-        "pitch": 65,
-        "rate": 175,
-    },
-}
-EMOTIONS = {
-    "neutral": (0, 0),
-    "excited": (13, 23),
-    "angry": (-6, 15),
-    "sad": (-10, -25),
-    "whispering": (-5, -30),
-    "surprised": (18, 10),
-}
 
 
 def connect():
@@ -156,21 +113,6 @@ def get_book(book_id, who=None):
     return json.loads(r["body"])
 
 
-def emotion(text):
-    t = text.lower()
-    if any(w in t for w in ["afraid", "sorry", "lost", "alone", "goodbye"]):
-        return "sad"
-    if any(w in t for w in ["quiet", "whisper", "shh"]):
-        return "whispering"
-    if any(w in t for w in ["stop!", "hate", "never!", "get out"]):
-        return "angry"
-    if "?" in t and "!" in t:
-        return "surprised"
-    if "!" in t:
-        return "excited"
-    return "neutral"
-
-
 def character(code, name, index=0, **extra):
     return {
         "id": code,
@@ -184,7 +126,7 @@ def character(code, name, index=0, **extra):
     }
 
 
-def local_lines(page, png, cast, signatures):
+def local_lines(page, png, cast, registry):
     """Extract native text or OCR; conservative, reviewable visual speaker proposals."""
     blocks = page.get_text("blocks", sort=True)
     w, h = page.rect.width, page.rect.height
@@ -226,61 +168,32 @@ def local_lines(page, png, cast, signatures):
             if prob >= 0.25
         ]
         items.sort(key=lambda r: (round(r[1][1] * 12), r[1][0]))
+    geometry = PageGeometry(image) if image is not None else None
     lines = []
     for txt, box, confidence in items[:160]:
         txt = txt[:1500]
         named = re.match(r"^([A-Z][A-Za-z .-]{1,24}):\s*(.+)", txt, flags=re.S)
-        code = "NARRATOR"
-        method = "unassigned"
+        name = None
         if named:
             name, txt = named.groups()
-            found = next((x for x in cast if x["name"].lower() == name.lower()), None)
-            if not found:
-                code = f"CHAR-{len(cast):02d}"
-                cast.append(
-                    character(code, name, len(cast) - 1, confidence="text label")
+        if geometry is not None:
+            try:
+                code, method = registry.assign(geometry, box, name=name)
+            except Exception:
+                LOG.exception(
+                    "Local visual matching unavailable; keeping text-label casting"
                 )
-            else:
-                code = found["id"]
-            method = "text label"
-        elif image is not None and len(txt) > 4:
-            # Compare local appearance beneath a balloon; this is a proposal, not face recognition.
-            ih, iw = image.shape[:2]
-            x0 = max(0, int((box[0] - 0.08) * iw))
-            x1 = min(iw, int((box[2] + 0.08) * iw))
-            y0 = min(ih - 1, int(box[3] * ih))
-            y1 = min(ih, int((box[3] + 0.23) * ih))
-            crop = image[y0:y1, x0:x1]
-            if crop.size and float(crop.std()) > 45:
-                hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-                hist = cv2.calcHist(
-                    [hsv], [0, 1], None, [12, 4], [0, 180, 0, 256]
-                ).flatten()
-                hist /= max(float(np.linalg.norm(hist)), 1e-9)
-                scores = [float(np.dot(hist, s[1])) for s in signatures]
-                if scores and max(scores) > 0.92:
-                    code = signatures[int(np.argmax(scores))][0]
-                elif len(signatures) < 8:
-                    code = f"CHAR-{len(cast):02d}"
-                    cast.append(
-                        character(
-                            code,
-                            f"Character {len(cast):02d}",
-                            len(cast) - 1,
-                            appearance="Local colour/position match; confirm speaker.",
-                            confidence="tentative visual match",
-                        )
-                    )
-                    signatures.append((code, hist))
-                method = (
-                    "tentative visual match" if code != "NARRATOR" else "unassigned"
-                )
+                code, method = registry.assign_vector(None, {}, name=name, quality=0.0)
+        else:
+            code, method = registry.assign_vector(None, {}, name=name, quality=0.0)
+        sentiment = analyze_sentiment(txt)
         lines.append(
             {
                 "id": uuid.uuid4().hex,
                 "text": txt,
                 "character": code,
-                "emotion": emotion(txt),
+                "emotion": sentiment["emotion"],
+                "sentiment": sentiment,
                 "box": box,
                 "confidence": round(confidence, 3),
                 "assignment": method,
@@ -330,13 +243,23 @@ def vision_lines(png, cast):
         code = str(c.get("id", ""))
         if not re.fullmatch(r"CHAR-\d{2}", code):
             continue
+        previous = known.get(code)
+        attrs = {
+            "age": str(c.get("age", "unspecified"))[:30],
+            "presentation": str(c.get("presentation", "unspecified"))[:30],
+        }
+        assigned_voice = (
+            previous["voice"]
+            if previous
+            else allocate_voice(list(known.values()), attrs)
+        )
         known[code] = character(
             code,
             str(c.get("name", code))[:60],
             appearance=str(c.get("appearance", ""))[:300],
             age=str(c.get("age", "unspecified"))[:30],
             presentation=str(c.get("presentation", "unspecified"))[:30],
-            voice=c.get("voice") if c.get("voice") in VOICES else "warm",
+            voice=assigned_voice,
             confidence="vision proposal",
         )
     cast[:] = list(known.values())
@@ -376,7 +299,7 @@ def analyze(book_id):
         b.update(status="processing", progress=2, error=None)
         save(b)
         cast = [character("NARRATOR", "Narrator", confidence="default")]
-        signatures = []
+        registry = CharacterRegistry(cast)
         pages = []
         with fitz.open(DATA / book_id / "source.pdf") as doc:
             for i, p in enumerate(doc):
@@ -389,7 +312,9 @@ def analyze(book_id):
                 )
                 pix.save(png)
                 lines = None
-                if os.getenv("PANEL_VISION_KEY"):
+                if os.getenv("PANEL_USE_EXTERNAL_VISION") == "1" and os.getenv(
+                    "PANEL_VISION_KEY"
+                ):
                     try:
                         lines = vision_lines(png, cast)
                     except Exception:
@@ -400,7 +325,7 @@ def analyze(book_id):
                             "Vision analysis was unavailable. Local OCR and tentative cast proposals were used."
                         )
                 if lines is None:
-                    lines = local_lines(p, png, cast, signatures)
+                    lines = local_lines(p, png, cast, registry)
                 pages.append(
                     {
                         "index": i,
@@ -421,7 +346,9 @@ def analyze(book_id):
             characters=cast,
             progress=100,
             engine="vision"
-            if os.getenv("PANEL_VISION_KEY") and not b.get("notice")
+            if os.getenv("PANEL_USE_EXTERNAL_VISION") == "1"
+            and os.getenv("PANEL_VISION_KEY")
+            and not b.get("notice")
             else "local",
         )
         save(b)
@@ -442,13 +369,25 @@ def health():
         "speech": neural_available()
         or bool(shutil.which("espeak-ng") or shutil.which("espeak")),
         "speechEngine": "kokoro" if neural_available() else "espeak",
-        "vision": bool(os.getenv("PANEL_VISION_KEY")),
+        "vision": bool(
+            os.getenv("PANEL_USE_EXTERNAL_VISION") == "1"
+            and os.getenv("PANEL_VISION_KEY")
+        ),
+        "castingEngine": "openclip" if visual_available() else "text-labels",
+        "voiceCount": len(VOICES),
+        "emotionCount": len(EMOTIONS),
+        "sentimentEngine": "vader",
     }
 
 
 @app.get("/api/voices")
 def voices():
     return VOICES
+
+
+@app.get("/api/emotions")
+def emotions():
+    return list(EMOTIONS)
 
 
 @app.get("/api/books")
@@ -617,6 +556,10 @@ def add_cast(
             raise HTTPException(409, "Wait for analysis to finish.")
         if len(b["characters"]) >= 24:
             raise HTTPException(422, "A comic can have up to 24 cast members.")
+        if any(c["voice"] == edit.voice for c in b["characters"]):
+            raise HTTPException(
+                409, "That voice belongs to another character. Choose an unused voice."
+            )
         used = {c["id"] for c in b["characters"]}
         code = next(
             f"CHAR-{n:02d}" for n in range(1, 100) if f"CHAR-{n:02d}" not in used
@@ -649,7 +592,50 @@ def edit_cast(
         c = next((c for c in b["characters"] if c["id"] == code), None)
         if not c:
             raise HTTPException(404, "Character not found.")
+        if any(
+            other["id"] != code and other["voice"] == edit.voice
+            for other in b["characters"]
+        ):
+            raise HTTPException(
+                409,
+                "That voice belongs to another character. Choose an unused voice or merge identities.",
+            )
         c.update(edit.model_dump(), confidence="reviewed")
+        save(b)
+    return b
+
+
+class MergeCast(BaseModel):
+    target: str
+
+
+@app.post("/api/books/{book_id}/characters/{code}/merge")
+def merge_cast(
+    book_id: str,
+    code: str,
+    edit: MergeCast,
+    authorization: str | None = Header(default=None),
+):
+    with LOCK:
+        b = get_book(book_id, owner(authorization))
+        if b["status"] != "ready":
+            raise HTTPException(409, "Wait for analysis to finish.")
+        ids = {c["id"] for c in b["characters"]}
+        if (
+            code == "NARRATOR"
+            or code == edit.target
+            or code not in ids
+            or edit.target not in ids
+        ):
+            raise HTTPException(
+                422,
+                "Choose two different existing characters. Narrator cannot be removed.",
+            )
+        for page in b["pages"]:
+            for line in page["lines"]:
+                if line["character"] == code:
+                    line.update(character=edit.target, assignment="reviewed merge")
+        b["characters"] = [c for c in b["characters"] if c["id"] != code]
         save(b)
     return b
 
@@ -681,7 +667,11 @@ def edit_line(
             or edit.emotion not in EMOTIONS
         ):
             raise HTTPException(422, "Unknown character or emotion.")
-        line.update(edit.model_dump(), assignment="reviewed")
+        line.update(
+            edit.model_dump(),
+            sentiment=analyze_sentiment(edit.text),
+            assignment="reviewed",
+        )
         save(b)
     return b
 
@@ -714,7 +704,10 @@ def speech(
                 l["text"],
                 c,
                 l["emotion"],
-                "kokoro-v1" if neural_available() else "espeak-v1",
+                VOICES[c["voice"]],
+                PROSODY[l["emotion"]],
+                l.get("sentiment", {}).get("intensity", 1.0),
+                "kokoro-v2" if neural_available() else "espeak-v2",
             ]
         ).encode()
     ).hexdigest()
@@ -733,13 +726,14 @@ def speech(
                     c.get("age"),
                     out,
                     (v, pitch, rate),
+                    intensity=l.get("sentiment", {}).get("intensity", 1.0),
                 )
             except Exception:
                 LOG.exception("Speech generation failed")
                 out.unlink(missing_ok=True)
                 raise HTTPException(503, "Narration failed. Try again.")
     return FileResponse(
-        out, media_type="audio/wav", headers={"Cache-Control": "private, max-age=86400"}
+        out, media_type="audio/wav", headers={"Cache-Control": "no-store"}
     )
 
 

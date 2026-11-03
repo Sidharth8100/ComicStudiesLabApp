@@ -11,3 +11,6 @@ httpx==0.28.1
 pytest==8.4.2
 kokoro-onnx==0.6.1
 soundfile==0.13.1
+open_clip_torch==2.32.0
+vaderSentiment==3.3.2
+huggingface-hub==0.36.0

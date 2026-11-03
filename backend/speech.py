@@ -5,15 +5,10 @@ from pathlib import Path
 import shutil
 import subprocess
 import threading
+from backend.voice_catalog import VOICES, PROSODY
 
 MODEL_DIR = Path(os.getenv("PANEL_MODEL_DIR", "/workspace/panel-models"))
-NEURAL_VOICES = {
-    "warm": "am_michael",
-    "bright": "af_heart",
-    "deep": "bm_george",
-    "soft": "bf_emma",
-    "electric": "am_echo",
-}
+NEURAL_VOICES = {code: profile["neural"] for code, profile in VOICES.items()}
 ENGINE = None
 INIT_LOCK = threading.Lock()
 
@@ -24,7 +19,7 @@ def neural_available():
     )
 
 
-def synthesize(text, voice, emotion, age, out, fallback):
+def synthesize(text, voice, emotion, age, out, fallback, intensity=1.0):
     global ENGINE
     if neural_available():
         from kokoro_onnx import Kokoro
@@ -45,22 +40,10 @@ def synthesize(text, voice, emotion, age, out, fallback):
                 ENGINE = Kokoro.from_session(
                     session, str(MODEL_DIR / "voices-v1.0.bin")
                 )
-        speeds = {
-            "neutral": 1.0,
-            "excited": 1.12,
-            "angry": 1.08,
-            "sad": 0.88,
-            "whispering": 0.9,
-            "surprised": 1.06,
-        }
-        pitch = {
-            "neutral": 1.0,
-            "excited": 1.045,
-            "angry": 0.975,
-            "sad": 0.965,
-            "whispering": 0.985,
-            "surprised": 1.065,
-        }[emotion]
+        strength = 0.55 + 0.45 * max(0.0, min(1.0, float(intensity)))
+        speed, pitch, volume = (
+            1.0 + (value - 1.0) * strength for value in PROSODY[emotion]
+        )
         if age in ("child", "teen"):
             pitch *= 1.04
         elif age == "older adult":
@@ -68,10 +51,10 @@ def synthesize(text, voice, emotion, age, out, fallback):
         samples, rate = ENGINE.create(
             text,
             voice=NEURAL_VOICES[voice],
-            speed=speeds[emotion],
-            lang="en-gb" if voice in ("soft", "deep") else "en-us",
+            speed=speed,
+            lang=VOICES[voice]["language"],
         )
-        if pitch != 1.0 or emotion == "whispering":
+        if pitch != 1.0 or volume != 1.0:
             temp = out.with_suffix(".tmp.wav")
             sf.write(temp, samples, rate)
             try:
@@ -85,7 +68,7 @@ def synthesize(text, voice, emotion, age, out, fallback):
                         "-i",
                         str(temp),
                         "-af",
-                        f"asetrate={round(rate * pitch)},aresample={rate},atempo={1 / pitch},volume={0.65 if emotion == 'whispering' else 1.0}",
+                        f"asetrate={round(rate * pitch)},aresample={rate},atempo={1 / pitch},volume={volume}",
                         str(out),
                     ],
                     check=True,

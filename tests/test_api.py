@@ -145,7 +145,7 @@ def test_empty_dialogue_cannot_be_saved():
 
 
 def test_emotion_detection():
-    from backend.main import emotion
+    from backend.sentiment import emotion
 
     assert emotion("I am alone.") == "sad"
     assert emotion("Shh, quiet.") == "whispering"
@@ -162,7 +162,7 @@ def test_add_character_and_reassign_dialogue():
         headers=AUTH,
         json={
             "name": "Comet",
-            "voice": "electric",
+            "voice": "alloy",
             "age": "teen",
             "presentation": "unspecified",
             "appearance": "Blue jacket",
@@ -221,3 +221,42 @@ def test_scanned_pdf_uses_real_ocr():
     assert b["status"] == "ready"
     text = " ".join(l["text"] for l in b["pages"][0]["lines"]).upper()
     assert "HELLO" in text and "COMICS" in text
+
+
+def test_distinct_voices_and_merge_apply_to_every_page():
+    b = client.post("/api/demo", headers=AUTH).json()
+    url = f"/api/books/{b['id']}"
+    nova = next(c for c in b["characters"] if c["id"] == "CHAR-01")
+    duplicate = client.patch(
+        url + "/characters/CHAR-02", headers=AUTH, json={**nova, "name": "Echo"}
+    )
+    assert duplicate.status_code == 409
+    merged = client.post(
+        url + "/characters/CHAR-02/merge", headers=AUTH, json={"target": "CHAR-01"}
+    )
+    assert merged.status_code == 200
+    after = merged.json()
+    assert all(c["id"] != "CHAR-02" for c in after["characters"])
+    assert all(l["character"] != "CHAR-02" for p in after["pages"] for l in p["lines"])
+    assert (
+        next(c for c in after["characters"] if c["id"] == "CHAR-01")["voice"]
+        == nova["voice"]
+    )
+    assert (
+        client.post(
+            url + "/characters/NARRATOR/merge", headers=AUTH, json={"target": "CHAR-01"}
+        ).status_code
+        == 422
+    )
+    assert len(client.get("/api/voices").json()) == 28
+    assert len(client.get("/api/emotions").json()) == 13
+
+
+def test_edited_speech_is_not_browser_cacheable():
+    b = client.post("/api/demo", headers=AUTH).json()
+    url = f"/api/books/{b['id']}"
+    line = b["pages"][0]["lines"][0]
+    response = client.get(url + "/speech/" + line["id"], headers=AUTH)
+    assert (
+        response.status_code == 200 and response.headers["cache-control"] == "no-store"
+    )
