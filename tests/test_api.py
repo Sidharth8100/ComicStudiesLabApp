@@ -19,3 +19,11 @@ def pdf_bytes(text="Ada: Hello from the uploaded comic!", pages=1):
         for _ in range(pages):
             d.new_page().insert_text((40, 60), text)
         return d.tobytes()
+
+
+def upload(data=None):
+    return client.post(
+        "/api/books",
+        headers=AUTH,
+        files={"file": ("test.pdf", data or pdf_bytes(), "application/pdf")},
+    )
