@@ -652,3 +652,9 @@ def edit_cast(
         c.update(edit.model_dump(), confidence="reviewed")
         save(b)
     return b
+
+
+class LineEdit(BaseModel):
+    text: str = Field(min_length=1, max_length=1500)
+    character: str
+    emotion: str
