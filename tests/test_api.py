@@ -55,3 +55,11 @@ def test_invalid_pdf_is_cleaned_up():
 
 def test_page_limit():
     assert upload(pdf_bytes(pages=101)).status_code == 400
+
+
+def test_password_protected_pdf():
+    with fitz.open(stream=pdf_bytes(), filetype="pdf") as d:
+        encrypted = d.tobytes(
+            encryption=fitz.PDF_ENCRYPT_AES_256, owner_pw="owner", user_pw="secret"
+        )
+    assert upload(encrypted).status_code == 400
