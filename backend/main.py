@@ -130,3 +130,9 @@ async def response_headers(request, call_next):
     if request.url.path.startswith("/api"):
         response.headers.setdefault("Cache-Control", "no-store")
     return response
+
+
+def owner(authorization: str | None):
+    if not authorization or not re.fullmatch(r"Bearer [a-f0-9]{64}", authorization):
+        raise HTTPException(401, "A library access key is required.")
+    return hashlib.sha256(authorization.encode()).hexdigest()
