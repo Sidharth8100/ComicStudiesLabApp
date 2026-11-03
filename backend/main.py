@@ -169,3 +169,16 @@ def emotion(text):
     if "!" in t:
         return "excited"
     return "neutral"
+
+
+def character(code, name, index=0, **extra):
+    return {
+        "id": code,
+        "name": name,
+        "voice": list(VOICES)[index % len(VOICES)],
+        "appearance": "",
+        "age": "unspecified",
+        "presentation": "unspecified",
+        "confidence": "needs review",
+        **extra,
+    }
