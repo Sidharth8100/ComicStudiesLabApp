@@ -1,0 +1,118 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import type { ReactNode, FormEvent } from "react";
+import { PageFlip } from "page-flip";
+import {
+  ArrowUpRight,
+  ArrowRight,
+  ArrowLeft,
+  BookOpen,
+  Library,
+  Compass,
+  Bookmark,
+  Plus,
+  Search,
+  Settings2,
+  Headphones,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Minimize2,
+  X,
+  Check,
+  LoaderCircle,
+  FileText,
+  Users,
+  SlidersHorizontal,
+  Sparkles,
+  Keyboard,
+  Trash2,
+  RotateCcw,
+  Download,
+  Eye,
+  Type,
+  Sun,
+  Moon,
+  MoreHorizontal,
+  Heart,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
+import { api, media, progressOf } from "./api";
+import type { Book, Character, Line } from "./api";
+
+const voiceNames: Record<string, string> = {
+  warm: "Atlas · Warm",
+  bright: "Juniper · Bright",
+  deep: "Orion · Deep",
+  soft: "Sage · Soft",
+  electric: "Echo · Animated",
+};
+const colors = ["#9eaed7", "#edab77", "#9ec4b4", "#d1a3c8", "#b6c985"];
+const sample: Book = {
+  id: "sample",
+  title: "After the Light",
+  status: "ready",
+  progress: 100,
+  pageCount: 4,
+  created: 0,
+  demo: true,
+  engine: "authored",
+  characters: [
+    {
+      id: "NARRATOR",
+      name: "Narrator",
+      voice: "warm",
+      appearance: "",
+      age: "unspecified",
+      presentation: "unspecified",
+      confidence: "authored",
+    },
+    {
+      id: "CHAR-01",
+      name: "Nova",
+      voice: "bright",
+      appearance: "Dark hair, terracotta jacket",
+      age: "adult",
+      presentation: "feminine",
+      confidence: "authored",
+    },
+    {
+      id: "CHAR-02",
+      name: "Echo",
+      voice: "electric",
+      appearance: "Silver robot, green eyes",
+      age: "unspecified",
+      presentation: "unspecified",
+      confidence: "authored",
+    },
+  ],
+  pages: [
+    ["Some stories begin at the end."],
+    [
+      "The city forgot how to dream.",
+      "Maybe it just needs someone to remind it.",
+    ],
+    [
+      "Do you really think we can bring it back?",
+      "One small light can change everything!",
+    ],
+    ["There. Can you see it?", "I can. And this time, we are not alone."],
+  ].map((texts, index) => ({
+    index,
+    width: 900,
+    height: 1200,
+    lines: texts.map((text, j) => ({
+      id: `sample-${index}-${j}`,
+      text,
+      character: index === 0 ? "NARRATOR" : j === 0 ? "CHAR-01" : "CHAR-02",
+      emotion: index === 2 ? "excited" : "neutral",
+      box: [0.05, 0.05 + j * 0.53, 0.8, 0.25 + j * 0.53],
+      assignment: "authored",
+    })),
+  })),
+};
