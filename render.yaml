@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: panel-comic-reader
+    runtime: docker
+    plan: pro
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    disk:
+      name: panel-library
+      mountPath: /data
+      sizeGB: 10
+    envVars:
+      - key: PANEL_DATA_DIR
+        value: /data
+      - key: PANEL_MODEL_DIR
+        value: /opt/panel-models
+      - key: PANEL_VISION_KEY
+        sync: false
+      - key: PANEL_VISION_MODEL
+        value: gpt-4o-mini
