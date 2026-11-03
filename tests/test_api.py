@@ -27,3 +27,12 @@ def upload(data=None):
         headers=AUTH,
         files={"file": ("test.pdf", data or pdf_bytes(), "application/pdf")},
     )
+
+
+def ready(book_id):
+    for _ in range(600):
+        b = client.get(f"/api/books/{book_id}", headers=AUTH).json()
+        if b["status"] in ("ready", "error"):
+            return b
+        time.sleep(0.05)
+    pytest.fail("Processing did not finish")
