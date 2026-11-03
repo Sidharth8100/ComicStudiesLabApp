@@ -51,3 +51,7 @@ def test_invalid_pdf_is_cleaned_up():
     before = set(DATA.iterdir())
     assert upload(b"not a PDF").status_code == 400
     assert set(DATA.iterdir()) == before
+
+
+def test_page_limit():
+    assert upload(pdf_bytes(pages=101)).status_code == 400
