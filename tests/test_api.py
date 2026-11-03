@@ -129,3 +129,26 @@ def test_path_traversal_and_unknown_book():
     assert client.get("/api/books/invalid", headers=AUTH).status_code == 404
     assert client.get("/api/books/" + "f" * 32, headers=AUTH).status_code == 404
     assert client.get("/api/not-a-route").status_code == 404
+
+
+def test_empty_dialogue_cannot_be_saved():
+    b = client.post("/api/demo", headers=AUTH).json()
+    line = b["pages"][0]["lines"][0]
+    assert (
+        client.patch(
+            f"/api/books/{b['id']}/lines/{line['id']}",
+            headers=AUTH,
+            json={**line, "text": ""},
+        ).status_code
+        == 422
+    )
+
+
+def test_emotion_detection():
+    from backend.main import emotion
+
+    assert emotion("I am alone.") == "sad"
+    assert emotion("Shh, quiet.") == "whispering"
+    assert emotion("Stop!") == "angry"
+    assert emotion("What?!") == "surprised"
+    assert emotion("We did it!") == "excited"
