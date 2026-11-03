@@ -212,3 +212,52 @@ function Modal({
     </div>
   );
 }
+function Cover({ book, onClick }: { book: Book; onClick: () => void }) {
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState(false);
+  useEffect(() => {
+    if (book.demo) return;
+    let alive = true,
+      object = "";
+    media(`/books/${book.id}/pages/0`)
+      .then((u) => {
+        object = u;
+        if (alive) setUrl(u);
+      })
+      .catch(() => setError(true));
+    return () => {
+      alive = false;
+      if (object) URL.revokeObjectURL(object);
+    };
+  }, [book.id, book.demo, book.status]);
+  return (
+    <button
+      className="cover-button"
+      aria-label={`Read ${book.title}`}
+      onClick={onClick}
+    >
+      {book.demo ? (
+        <img
+          src="./comic-0.svg"
+          alt="After the Light: Nova and Echo in a sunset city"
+        />
+      ) : url ? (
+        <img src={url} alt={`${book.title} cover`} />
+      ) : (
+        <div className="cover-placeholder">
+          <FileText size={40} />
+          <span>
+            {error
+              ? "Preview unavailable"
+              : book.status === "ready"
+                ? "Loading cover…"
+                : `${book.progress}% processed`}
+          </span>
+        </div>
+      )}
+      <span className="cover-open">
+        <BookOpen size={19} /> Open story
+      </span>
+    </button>
+  );
+}
