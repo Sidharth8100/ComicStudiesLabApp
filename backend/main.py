@@ -570,3 +570,14 @@ def retry(book_id: str, authorization: str | None = Header(default=None)):
         save(b)
         POOL.submit(analyze, book_id)
     return b
+
+
+@app.delete("/api/books/{book_id}", status_code=204)
+def delete(book_id: str, authorization: str | None = Header(default=None)):
+    with LOCK:
+        b = get_book(book_id, owner(authorization))
+        if b["status"] in ("processing", "queued"):
+            raise HTTPException(409, "Wait for processing to finish before deleting.")
+        with connect() as c:
+            c.execute("DELETE FROM books WHERE id=?", (book_id,))
+        shutil.rmtree(DATA / book_id, ignore_errors=True)
