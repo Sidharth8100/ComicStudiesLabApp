@@ -1,0 +1,13 @@
+fastapi==0.121.0
+uvicorn[standard]==0.38.0
+python-multipart==0.0.20
+pymupdf==1.26.6
+pydantic==2.12.3
+numpy==2.2.6
+opencv-python-headless==4.11.0.86
+easyocr==1.7.2
+cairosvg==2.8.2
+httpx==0.28.1
+pytest==8.4.2
+kokoro-onnx==0.6.1
+soundfile==0.13.1
