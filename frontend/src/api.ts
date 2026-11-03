@@ -43,7 +43,7 @@ export const token =
         b.toString(16).padStart(2, "0"),
       ).join("");
 localStorage.setItem("panel-library-key", token);
-const BASE = import.meta.env.VITE_API_URL || "";
+const BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 export async function api<T>(
   path: string,
   options: RequestInit = {},
@@ -86,6 +86,19 @@ export async function media(
   }
   return URL.createObjectURL(await r.blob());
 }
+export function savedBookmarks(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(
+      localStorage.getItem("panel-bookmarks") || "[]",
+    );
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
 export function progressOf(id: string) {
-  return Number(localStorage.getItem("panel-progress-" + id) || 0);
+  const page = Number(localStorage.getItem("panel-progress-" + id) || 0);
+  return Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
 }

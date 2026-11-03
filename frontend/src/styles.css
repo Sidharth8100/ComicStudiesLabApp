@@ -6,8 +6,8 @@
 @import "@fontsource/manrope/700.css";
 :root {
   font-family: "DM Sans", sans-serif;
-  color: #23372e;
-  background: #f7f6f2;
+  color: var(--ink);
+  background: var(--paper);
   font-synthesis: none;
   --paper: #f7f6f2;
   --surface: #fffefa;
@@ -2670,4 +2670,44 @@ kbd {
   .sidebar-note {
     display: none;
   }
+}
+[data-theme="night"] {
+  --green: #49643b;
+}
+[data-theme="night"] .stage-topline,
+[data-theme="night"] .stage-topline > button,
+[data-theme="night"] .page-navigation span,
+[data-theme="night"] .page-navigation b,
+[data-theme="night"] .audio-engine,
+[data-theme="night"] .line-tools,
+[data-theme="night"] .narration-tip,
+[data-theme="night"] .narration-tip button,
+[data-theme="night"] .cast-confidence,
+[data-theme="night"] .hero-foot,
+[data-theme="night"] .hero-foot strong,
+[data-theme="night"] .feature-strip,
+[data-theme="night"] .book-meta,
+[data-theme="night"] .cover-number,
+[data-theme="night"] .import-card > small,
+[data-theme="night"] .import-link,
+[data-theme="night"] .footer-brand,
+[data-theme="night"] .issue-label {
+  color: var(--muted);
+}
+[data-theme="night"] .page-navigation .icon-button {
+  background: #304235;
+  color: var(--ink);
+  border-color: #68775f;
+}
+.merge-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 17px;
+}
+/* Theme choices switch together with their foregrounds, avoiding a transient
+   low-contrast light background while midnight text has already turned light. */
+.theme-options > button {
+  transition: none;
 }

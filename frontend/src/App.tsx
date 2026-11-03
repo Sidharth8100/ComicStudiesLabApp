@@ -42,16 +42,31 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
-import { api, media, progressOf } from "./api";
+import { api, media, progressOf, savedBookmarks } from "./api";
 import type { Book, Character, Line } from "./api";
+import voiceCatalog from "./voices.json";
 
-const voiceNames: Record<string, string> = {
-  warm: "Atlas · Warm",
-  bright: "Juniper · Bright",
-  deep: "Orion · Deep",
-  soft: "Sage · Soft",
-  electric: "Echo · Animated",
-};
+const defaultVoiceNames: Record<string, string> = Object.fromEntries(
+  Object.entries(voiceCatalog).map(([id, v]) => [
+    id,
+    `${v.name} · ${v.description}`,
+  ]),
+);
+const defaultEmotions = [
+  "neutral",
+  "excited",
+  "angry",
+  "sad",
+  "whispering",
+  "surprised",
+  "joyful",
+  "fearful",
+  "hopeful",
+  "sarcastic",
+  "calm",
+  "confident",
+  "tense",
+];
 const colors = ["#9eaed7", "#edab77", "#9ec4b4", "#d1a3c8", "#b6c985"];
 const sample: Book = {
   id: "sample",
@@ -278,8 +293,25 @@ function FlipBook({
     requested = useRef(page);
   callback.current = onPage;
   requested.current = page;
+  const [size, setSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
-    if (!host.current || !urls.length) return;
+    const parent = host.current;
+    if (!parent) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const width = Math.round(entry.contentRect.width);
+      const height = Math.round(entry.contentRect.height);
+      setSize((previous) =>
+        previous.width === width && previous.height === height
+          ? previous
+          : { width, height },
+      );
+    });
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!host.current || !urls.length || size.width < 50 || size.height < 50)
+      return;
     const parent = host.current;
     const node = document.createElement("div");
     parent.appendChild(node);
@@ -330,7 +362,7 @@ function FlipBook({
       flip.current = null;
       node.remove();
     };
-  }, [urls, reduced]);
+  }, [urls, reduced, size.width, size.height]);
   useEffect(() => {
     const p = flip.current;
     if (
@@ -381,9 +413,7 @@ export default function App() {
     [rate, setRate] = useState(1),
     [volume, setVolume] = useState(0.8),
     [expanded, setExpanded] = useState(false),
-    [bookmarked, setBookmarked] = useState<string[]>(() =>
-      JSON.parse(localStorage.getItem("panel-bookmarks") || "[]"),
-    );
+    [bookmarked, setBookmarked] = useState<string[]>(savedBookmarks);
   const [prefs, setPrefs] = useState(() => {
     try {
       return {
@@ -404,6 +434,28 @@ export default function App() {
       };
     }
   });
+  const [voiceNames, setVoiceNames] =
+    useState<Record<string, string>>(defaultVoiceNames);
+  const [emotionNames, setEmotionNames] = useState<string[]>(defaultEmotions);
+  const [mergeTarget, setMergeTarget] = useState("");
+  useEffect(() => {
+    api<Record<string, { name: string; description: string }>>("/voices")
+      .then((v) =>
+        setVoiceNames(
+          Object.fromEntries(
+            Object.entries(v).map(([id, p]) => [
+              id,
+              `${p.name} · ${p.description}`,
+            ]),
+          ),
+        ),
+      )
+      .catch(() => {});
+    api<string[]>("/emotions")
+      .then(setEmotionNames)
+      .catch(() => {});
+  }, []);
+  useEffect(() => setMergeTarget(""), [castEdit?.id]);
   const input = useRef<HTMLInputElement>(null),
     audio = useRef<HTMLAudioElement | null>(null),
     lastBook = useRef(""),
@@ -627,11 +679,11 @@ export default function App() {
     try {
       const b = await api<Book>("/demo", { method: "POST" });
       setBook(b);
-      setPage(progressOf(b.id));
+      setPage(Math.min(progressOf(b.id), b.pageCount - 1));
       refresh();
     } catch {
       setBook(sample);
-      setPage(progressOf("sample"));
+      setPage(Math.min(progressOf("sample"), sample.pageCount - 1));
       setService(false);
     } finally {
       setBusy(false);
@@ -686,6 +738,16 @@ export default function App() {
   async function saveCast(e: FormEvent) {
     e.preventDefault();
     if (!castEdit || !book) return;
+    if (
+      book.characters.some(
+        (c) => c.id !== castEdit.id && c.voice === castEdit.voice,
+      )
+    ) {
+      setError(
+        "This voice already belongs to another character. Choose an unused voice or merge identities.",
+      );
+      return;
+    }
     setSaving(true);
     try {
       if (book.id === "sample")
@@ -745,6 +807,38 @@ export default function App() {
           }),
         );
       setLineEdit(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function mergeCharacter() {
+    if (!book || !castEdit || !mergeTarget) return;
+    setSaving(true);
+    setPlaying(false);
+    try {
+      if (book.id === "sample")
+        setBook({
+          ...book,
+          characters: book.characters.filter((c) => c.id !== castEdit.id),
+          pages: book.pages.map((p) => ({
+            ...p,
+            lines: p.lines.map((l) =>
+              l.character === castEdit.id
+                ? { ...l, character: mergeTarget, assignment: "reviewed merge" }
+                : l,
+            ),
+          })),
+        });
+      else
+        setBook(
+          await api<Book>(`/books/${book.id}/characters/${castEdit.id}/merge`, {
+            method: "POST",
+            body: JSON.stringify({ target: mergeTarget }),
+          }),
+        );
+      setCastEdit(null);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -1528,7 +1622,11 @@ export default function App() {
                           setCastEdit({
                             id: "NEW",
                             name: "New character",
-                            voice: "warm",
+                            voice:
+                              Object.keys(voiceNames).find(
+                                (v) =>
+                                  !book.characters.some((c) => c.voice === v),
+                              ) || "warm",
                             age: "unspecified",
                             presentation: "unspecified",
                             appearance: "",
@@ -1917,8 +2015,19 @@ export default function App() {
                 }
               >
                 {Object.entries(voiceNames).map(([v, n]) => (
-                  <option key={v} value={v}>
+                  <option
+                    key={v}
+                    value={v}
+                    disabled={book?.characters.some(
+                      (c) => c.id !== castEdit.id && c.voice === v,
+                    )}
+                  >
                     {n}
+                    {book?.characters.some(
+                      (c) => c.id !== castEdit.id && c.voice === v,
+                    )
+                      ? " (in use)"
+                      : ""}
                   </option>
                 ))}
               </select>
@@ -1969,6 +2078,39 @@ export default function App() {
               Choose the voice that fits your interpretation. Visual matches and
               inferred attributes are suggestions you can always change.
             </p>
+            {castEdit.id !== "NEW" && castEdit.id !== "NARRATOR" && (
+              <div className="merge-controls">
+                <label>
+                  Same character as…
+                  <select
+                    aria-label="Merge into character"
+                    value={mergeTarget}
+                    onChange={(e) => setMergeTarget(e.target.value)}
+                  >
+                    <option value="">Choose an existing identity</option>
+                    {book?.characters
+                      .filter((c) => c.id !== castEdit.id)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} · {c.id}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="button full"
+                  disabled={!mergeTarget || saving}
+                  onClick={mergeCharacter}
+                >
+                  Merge character across all pages
+                </button>
+                <p className="privacy-note">
+                  All dialogue moves to the selected identity and keeps that
+                  identity’s voice.
+                </p>
+              </div>
+            )}
             <button className="button primary full" disabled={saving}>
               {saving ? (
                 <LoaderCircle className="spin" size={17} />
@@ -2018,14 +2160,7 @@ export default function App() {
                   setLineEdit({ ...lineEdit, emotion: e.target.value })
                 }
               >
-                {[
-                  "neutral",
-                  "excited",
-                  "angry",
-                  "sad",
-                  "whispering",
-                  "surprised",
-                ].map((x) => (
+                {emotionNames.map((x) => (
                   <option key={x}>{x}</option>
                 ))}
               </select>
