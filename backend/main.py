@@ -603,3 +603,31 @@ class CastEdit(BaseModel):
     age: str = Field(default="unspecified", max_length=30)
     presentation: str = Field(default="unspecified", max_length=30)
     appearance: str = Field(default="", max_length=300)
+
+
+@app.post("/api/books/{book_id}/characters")
+def add_cast(
+    book_id: str, edit: CastEdit, authorization: str | None = Header(default=None)
+):
+    if edit.voice not in VOICES:
+        raise HTTPException(422, "Unknown voice.")
+    with LOCK:
+        b = get_book(book_id, owner(authorization))
+        if b["status"] != "ready":
+            raise HTTPException(409, "Wait for analysis to finish.")
+        if len(b["characters"]) >= 24:
+            raise HTTPException(422, "A comic can have up to 24 cast members.")
+        used = {c["id"] for c in b["characters"]}
+        code = next(
+            f"CHAR-{n:02d}" for n in range(1, 100) if f"CHAR-{n:02d}" not in used
+        )
+        b["characters"].append(
+            character(
+                code,
+                edit.name,
+                **{k: v for k, v in edit.model_dump().items() if k != "name"},
+                confidence="reviewed",
+            )
+        )
+        save(b)
+    return b
