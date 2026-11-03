@@ -37,6 +37,16 @@ test("Pages-style subpath build connects to a separate backend and renders an up
       name: /Listen to Ada: Hello from the uploaded comic/,
     }),
   ).toBeVisible();
+  const narration = page.waitForResponse(
+    (r) => new URL(r.url()).pathname.includes("/speech/") && r.status() === 200,
+  );
+  await page
+    .getByRole("button", { name: "Play narration", exact: true })
+    .click();
+  expect((await narration).headers()["cache-control"]).toContain("no-store");
+  await page
+    .getByRole("button", { name: "Pause narration", exact: true })
+    .click();
   expect(apiRequests.length).toBeGreaterThan(0);
   expect(
     apiRequests.every(

@@ -75,6 +75,8 @@ export async function media(
   signal?: AbortSignal,
 ): Promise<string> {
   const r = await fetch(BASE + "/api" + path, {
+    // Bypass clips cached by earlier versions as well as future voice edits.
+    cache: path.includes("/speech/") ? "no-store" : "default",
     headers: { Authorization: `Bearer ${token}` },
     signal,
   });

@@ -6,6 +6,7 @@ services:
     volumes:
       - panel-library:/data
     environment:
+      PANEL_USE_EXTERNAL_VISION: ${PANEL_USE_EXTERNAL_VISION:-0}
       PANEL_VISION_KEY: ${PANEL_VISION_KEY:-}
       PANEL_VISION_MODEL: ${PANEL_VISION_MODEL:-gpt-4o-mini}
     restart: unless-stopped
