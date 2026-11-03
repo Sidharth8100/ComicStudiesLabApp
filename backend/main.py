@@ -449,3 +449,13 @@ def health():
 @app.get("/api/voices")
 def voices():
     return VOICES
+
+
+@app.get("/api/books")
+def books(authorization: str | None = Header(default=None)):
+    who = owner(authorization)
+    with connect() as c:
+        rows = c.execute(
+            "SELECT body FROM books WHERE owner=? ORDER BY rowid DESC", (who,)
+        ).fetchall()
+    return [json.loads(r["body"]) for r in rows]
