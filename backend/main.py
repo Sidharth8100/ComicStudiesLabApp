@@ -741,3 +741,19 @@ def speech(
     return FileResponse(
         out, media_type="audio/wav", headers={"Cache-Control": "private, max-age=86400"}
     )
+
+
+@app.post("/api/demo")
+def demo(authorization: str | None = Header(default=None)):
+    who = owner(authorization)
+    with connect() as c:
+        for row in c.execute("SELECT body FROM books WHERE owner=?", (who,)):
+            b = json.loads(row["body"])
+            if b.get("demo"):
+                return b
+    from backend.sample import make_demo
+
+    book_id = uuid.uuid4().hex
+    b = make_demo(DATA, book_id)
+    save(b, who)
+    return b
