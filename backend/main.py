@@ -88,3 +88,45 @@ def connect():
     c = sqlite3.connect(DB, timeout=20)
     c.row_factory = sqlite3.Row
     return c
+
+
+with connect() as c:
+    c.execute(
+        "CREATE TABLE IF NOT EXISTS books (id TEXT PRIMARY KEY, owner TEXT NOT NULL, body TEXT NOT NULL)"
+    )
+    # Workers are ephemeral; interrupted jobs must not poll forever after a restart.
+    for r in c.execute("SELECT id,body FROM books").fetchall():
+        b = json.loads(r["body"])
+        if b["status"] in ("queued", "processing"):
+            b.update(
+                status="error", error="Processing was interrupted. Retry to continue."
+            )
+            c.execute("UPDATE books SET body=? WHERE id=?", (json.dumps(b), r["id"]))
+
+app = FastAPI(
+    title="Panel API",
+    version="1.0.0",
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+)
+allowed_origins = [
+    s.strip() for s in os.getenv("PANEL_ALLOWED_ORIGINS", "").split(",") if s.strip()
+]
+if allowed_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_methods=["GET", "POST", "PATCH", "DELETE"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
+
+
+@app.middleware("http")
+async def response_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Frame-Options"] = "DENY"
+    if request.url.path.startswith("/api"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
