@@ -595,3 +595,11 @@ def page_image(
         media_type="image/png",
         headers={"Cache-Control": "private, max-age=86400"},
     )
+
+
+class CastEdit(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    voice: str
+    age: str = Field(default="unspecified", max_length=30)
+    presentation: str = Field(default="unspecified", max_length=30)
+    appearance: str = Field(default="", max_length=300)
