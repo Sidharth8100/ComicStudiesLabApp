@@ -191,7 +191,11 @@ test("uploaded named characters receive age/presentation voice cues and sentimen
     .locator("input[type=file]")
     .setInputFiles("/tmp/panel-casting-e2e.pdf");
   await expect(
-    page.getByRole("heading", { name: "panel-casting-e2e", exact: true }),
+    page.getByRole("heading", {
+      name: "panel-casting-e2e",
+      exact: true,
+      level: 1,
+    }),
   ).toBeVisible({ timeout: 60000 });
   await expect(page.locator(".speaker-heading small").first()).toHaveText(
     "fearful",
