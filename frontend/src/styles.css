@@ -1554,3 +1554,99 @@ small {
   overflow: auto;
   box-shadow: 0 25px 100px #12281e44;
 }
+.modal.wide {
+  max-width: 700px;
+}
+.modal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.modal-heading h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.5px;
+  font-size: 27px;
+}
+.modal-heading .icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+}
+.modal-description {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 13px 0 25px;
+}
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1.5px dashed #9cac89;
+  border-radius: 10px;
+  padding: 35px 20px;
+  background: #eaf0df80;
+  width: 100%;
+  text-align: center;
+}
+.dropzone:hover,
+.dropzone.drag-over {
+  background: #dce9c8;
+}
+.upload-cloud {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  background: #dce7ce;
+  border-radius: 17px;
+  color: #5a7950;
+  margin-bottom: 22px;
+}
+.dropzone h3 {
+  font-size: 17px;
+  font-weight: 500;
+}
+.dropzone p {
+  font-size: 11px;
+  margin-top: 10px;
+  color: var(--muted);
+}
+.dropzone small {
+  font-size: 9px;
+  margin-top: 22px;
+  color: var(--muted);
+}
+.import-features {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 21px 0;
+  color: #6b815c;
+  font-size: 9px;
+}
+.import-features > span {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.privacy-note {
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--muted);
+  margin-top: 18px;
+}
+.service-note {
+  font-size: 11px;
+  padding: 12px;
+  background: #efe5d0;
+  border-radius: 7px;
+  color: #6e5b35;
+  margin-top: 14px;
+  line-height: 1.6;
+}
+.settings-section {
+  margin-bottom: 21px;
+}
