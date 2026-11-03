@@ -658,3 +658,29 @@ class LineEdit(BaseModel):
     text: str = Field(min_length=1, max_length=1500)
     character: str
     emotion: str
+
+
+@app.patch("/api/books/{book_id}/lines/{line_id}")
+def edit_line(
+    book_id: str,
+    line_id: str,
+    edit: LineEdit,
+    authorization: str | None = Header(default=None),
+):
+    with LOCK:
+        b = get_book(book_id, owner(authorization))
+        if b["status"] != "ready":
+            raise HTTPException(409, "Wait for analysis to finish.")
+        line = next(
+            (l for p in b["pages"] for l in p["lines"] if l["id"] == line_id), None
+        )
+        if not line:
+            raise HTTPException(404, "Dialogue not found.")
+        if (
+            edit.character not in [c["id"] for c in b["characters"]]
+            or edit.emotion not in EMOTIONS
+        ):
+            raise HTTPException(422, "Unknown character or emotion.")
+        line.update(edit.model_dump(), assignment="reviewed")
+        save(b)
+    return b
