@@ -186,3 +186,38 @@ def test_add_character_and_reassign_dialogue():
         ).status_code
         == 404
     )
+
+
+def test_scanned_pdf_uses_real_ocr():
+    import cv2
+    import numpy as np
+
+    cache = (
+        Path(os.getenv("EASYOCR_MODULE_PATH", "/workspace/comicstudies-setup"))
+        / "model"
+    )
+    if not cache.exists():
+        pytest.skip("Cached OCR weights are not present in this runner")
+    image = np.full((240, 900, 3), 255, dtype=np.uint8)
+    cv2.putText(
+        image,
+        "HELLO COMICS",
+        (30, 140),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        2.2,
+        (0, 0, 0),
+        4,
+        cv2.LINE_AA,
+    )
+    ok, png = cv2.imencode(".png", image)
+    assert ok
+    with fitz.open() as d:
+        p = d.new_page(width=675, height=180)
+        p.insert_image(p.rect, stream=png.tobytes())
+        data = d.tobytes()
+    r = upload(data)
+    assert r.status_code == 202
+    b = ready(r.json()["id"])
+    assert b["status"] == "ready"
+    text = " ".join(l["text"] for l in b["pages"][0]["lines"]).upper()
+    assert "HELLO" in text and "COMICS" in text
