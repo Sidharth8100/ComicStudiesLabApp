@@ -1461,3 +1461,96 @@ small {
 .is-playing i {
   animation: wave 0.8s infinite alternate;
 }
+.is-playing i:nth-child(2n) {
+  animation-delay: 0.3s;
+}
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
+  max-width: 465px;
+}
+.play-button {
+  height: 40px;
+  width: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fafae9;
+  flex-shrink: 0;
+}
+.play-button:hover {
+  background: #5f7b4b;
+  transform: scale(1.05);
+}
+.player-track {
+  flex: 1;
+}
+.player-track > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
+  color: var(--muted);
+  margin-bottom: 9px;
+  letter-spacing: 0.7px;
+}
+.track {
+  height: 3px;
+  background: #e0e5d6;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.track i {
+  display: block;
+  background: #6d8e55;
+  height: 100%;
+  transition: width 0.5s;
+}
+.player-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.player-options select {
+  font-size: 10px;
+  border: 0;
+  background: transparent;
+  padding: 5px;
+}
+.player-options input {
+  width: 60px;
+}
+.immersive .narration-panel {
+  display: none;
+}
+.immersive .reading-stage {
+  padding-inline: 8vw;
+}
+.immersive .reader-private {
+  display: none;
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #142a23a1;
+  z-index: 70;
+  backdrop-filter: blur(7px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 25px;
+  animation: fadein 0.2s;
+}
+.modal {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 510px;
+  width: 100%;
+  max-height: calc(100dvh - 50px);
+  overflow: auto;
+  box-shadow: 0 25px 100px #12281e44;
+}
