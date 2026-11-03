@@ -123,3 +123,9 @@ def test_demo_cast_transcript_and_real_speech():
         == 422
     )
     assert client.get(url + "/speech/bogus", headers=AUTH).status_code == 404
+
+
+def test_path_traversal_and_unknown_book():
+    assert client.get("/api/books/invalid", headers=AUTH).status_code == 404
+    assert client.get("/api/books/" + "f" * 32, headers=AUTH).status_code == 404
+    assert client.get("/api/not-a-route").status_code == 404
