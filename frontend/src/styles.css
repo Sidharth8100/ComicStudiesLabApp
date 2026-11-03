@@ -699,3 +699,131 @@ small {
 .book-card {
   min-width: 0;
 }
+.book-card-top {
+  background: #e2e7dc;
+  padding: 29px 35px 22px;
+  border-radius: 9px;
+  position: relative;
+  height: 285px;
+  overflow: hidden;
+}
+.book-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  background: #ffffeddb;
+  color: #375138;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 7px;
+  border-radius: 4px;
+  font-size: 6px;
+  letter-spacing: 1px;
+}
+.sample-cover {
+  margin: auto;
+  width: 145px;
+  box-shadow: 9px 12px 18px #24332240;
+  transform: rotate(-5deg);
+  padding: 0;
+  position: relative;
+  transition: transform 0.4s;
+}
+.sample-cover img {
+  height: 207px;
+  width: 155px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+.sample-cover:hover {
+  transform: rotate(0) translateY(-3px);
+}
+.sample-read {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #122a33b5;
+  color: #f8f4db;
+  gap: 8px;
+  opacity: 0;
+  font-size: 11px;
+  padding: 15px;
+  text-align: left;
+  transition: opacity 0.3s;
+}
+.sample-cover:hover .sample-read,
+.sample-cover:focus .sample-read {
+  opacity: 1;
+}
+.cover-number {
+  font-size: 7px;
+  letter-spacing: 1.8px;
+  display: block;
+  text-align: center;
+  margin-top: 19px;
+  color: #526248;
+}
+.book-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 15px 0 13px;
+  gap: 8px;
+}
+.book-info h3 {
+  font-family: "Manrope", sans-serif;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 230px;
+}
+.book-info p {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.book-info .icon-button {
+  border: 1px solid var(--line);
+  height: 30px;
+  width: 30px;
+  padding: 5px;
+}
+.book-meta {
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 11px;
+  font-size: 8px;
+  color: #626b5d;
+}
+.book-meta > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.import-card {
+  border: 1px dashed #bfc8b3;
+  min-height: 285px;
+  height: 285px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  background: linear-gradient(135deg, #f4f4ed, #edeedf55);
+  transition:
+    background 0.25s,
+    transform 0.25s;
+}
+.import-card:hover {
+  background: #e8eddd;
+  transform: translateY(-3px);
+}
