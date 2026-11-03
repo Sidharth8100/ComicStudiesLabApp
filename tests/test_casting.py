@@ -70,6 +70,10 @@ def test_background_and_ambiguous_matches_remain_unassigned():
     cast = [narrator()]
     r = CharacterRegistry(cast)
     assert r.assign_vector(np.array([1.0, 0.0]), {}, quality=-0.1)[0] == "NARRATOR"
+    assert (
+        r.assign_vector(np.array([1.0, 0.0]), {"kind": "background"}, quality=0.1)[0]
+        == "NARRATOR"
+    )
     a, _ = r.assign_vector(np.array([1.0, 0.0]), {}, name="One")
     b, _ = r.assign_vector(np.array([0.999, 0.04]), {}, name="Two")
     assert a != b

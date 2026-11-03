@@ -250,13 +250,16 @@ class CharacterRegistry:
                 character["name"] = name
             # Do not change this character's voice, age or presentation on later pages.
             return code, "visual match · reviewable"
-        if not name and (vector is None or quality < 0.005):
+        if not name and (
+            vector is None or quality < 0.005 or attributes.get("kind") == "background"
+        ):
             return "NARRATOR", "unassigned"
         if not name and matches and matches[0][0] > 0.84:
             return "NARRATOR", "ambiguous visual match · assign in cast studio"
         if len(self.cast) >= 24:
             return "NARRATOR", "cast limit · assign in cast studio"
-        attrs = {**attributes, **role_cues(name or "")}
+        visual_attributes = {} if attributes.get("kind") == "background" else attributes
+        attrs = {**visual_attributes, **role_cues(name or "")}
         code = next(
             f"CHAR-{i:02d}"
             for i in range(1, 100)
