@@ -154,3 +154,18 @@ def get_book(book_id, who=None):
     if not r or (who and r["owner"] != who):
         raise HTTPException(404, "Comic not found.")
     return json.loads(r["body"])
+
+
+def emotion(text):
+    t = text.lower()
+    if any(w in t for w in ["afraid", "sorry", "lost", "alone", "goodbye"]):
+        return "sad"
+    if any(w in t for w in ["quiet", "whisper", "shh"]):
+        return "whispering"
+    if any(w in t for w in ["stop!", "hate", "never!", "get out"]):
+        return "angry"
+    if "?" in t and "!" in t:
+        return "surprised"
+    if "!" in t:
+        return "excited"
+    return "neutral"
