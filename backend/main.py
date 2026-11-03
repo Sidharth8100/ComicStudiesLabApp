@@ -581,3 +581,17 @@ def delete(book_id: str, authorization: str | None = Header(default=None)):
         with connect() as c:
             c.execute("DELETE FROM books WHERE id=?", (book_id,))
         shutil.rmtree(DATA / book_id, ignore_errors=True)
+
+
+@app.get("/api/books/{book_id}/pages/{index}")
+def page_image(
+    book_id: str, index: int, authorization: str | None = Header(default=None)
+):
+    b = get_book(book_id, owner(authorization))
+    if index < 0 or index >= len(b["pages"]):
+        raise HTTPException(404, "Page not ready.")
+    return FileResponse(
+        DATA / book_id / f"page-{index}.png",
+        media_type="image/png",
+        headers={"Cache-Control": "private, max-age=86400"},
+    )
