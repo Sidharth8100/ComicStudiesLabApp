@@ -757,3 +757,17 @@ def demo(authorization: str | None = Header(default=None)):
     b = make_demo(DATA, book_id)
     save(b, who)
     return b
+
+
+DIST = ROOT / "frontend" / "dist"
+if DIST.exists():
+    app.mount("/assets", StaticFiles(directory=DIST / "assets"), name="assets")
+
+    @app.get("/{path:path}")
+    def frontend(path: str):
+        if path.startswith("api/"):
+            raise HTTPException(404, "Endpoint not found.")
+        target = (DIST / path).resolve()
+        if target.is_relative_to(DIST.resolve()) and target.is_file():
+            return FileResponse(target)
+        return FileResponse(DIST / "index.html")
