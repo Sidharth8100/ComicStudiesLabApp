@@ -546,3 +546,10 @@ async def store_pdf(file, who):
         raise
     finally:
         await file.close()
+
+
+@app.post("/api/books", status_code=202)
+async def upload(
+    file: UploadFile = File(...), authorization: str | None = Header(default=None)
+):
+    return await store_pdf(file, owner(authorization))
