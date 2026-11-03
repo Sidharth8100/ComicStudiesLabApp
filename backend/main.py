@@ -368,3 +368,68 @@ def vision_lines(png, cast):
             }
         )
     return lines
+
+
+def analyze(book_id):
+    try:
+        b = get_book(book_id)
+        b.update(status="processing", progress=2, error=None)
+        save(b)
+        cast = [character("NARRATOR", "Narrator", confidence="default")]
+        signatures = []
+        pages = []
+        with fitz.open(DATA / book_id / "source.pdf") as doc:
+            for i, p in enumerate(doc):
+                png = DATA / book_id / f"page-{i}.png"
+                pix = p.get_pixmap(
+                    matrix=fitz.Matrix(
+                        min(1600 / p.rect.width, 2.5), min(1600 / p.rect.width, 2.5)
+                    ),
+                    alpha=False,
+                )
+                pix.save(png)
+                lines = None
+                if os.getenv("PANEL_VISION_KEY"):
+                    try:
+                        lines = vision_lines(png, cast)
+                    except Exception:
+                        LOG.warning(
+                            "Vision provider failed; falling back to local extraction"
+                        )
+                        b["notice"] = (
+                            "Vision analysis was unavailable. Local OCR and tentative cast proposals were used."
+                        )
+                if lines is None:
+                    lines = local_lines(p, png, cast, signatures)
+                pages.append(
+                    {
+                        "index": i,
+                        "width": pix.width,
+                        "height": pix.height,
+                        "lines": lines,
+                    }
+                )
+                b.update(
+                    progress=round((i + 1) / len(doc) * 100),
+                    pages=pages,
+                    characters=cast,
+                )
+                save(b)
+        b.update(
+            status="ready",
+            pages=pages,
+            characters=cast,
+            progress=100,
+            engine="vision"
+            if os.getenv("PANEL_VISION_KEY") and not b.get("notice")
+            else "local",
+        )
+        save(b)
+    except Exception as exc:
+        LOG.exception("Comic processing failed: %s", type(exc).__name__)
+        b = get_book(book_id)
+        b.update(
+            status="error",
+            error="Could not process this PDF. Verify that it contains readable pages, then retry.",
+        )
+        save(b)
