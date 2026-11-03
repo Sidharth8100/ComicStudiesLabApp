@@ -261,3 +261,98 @@ function Cover({ book, onClick }: { book: Book; onClick: () => void }) {
     </button>
   );
 }
+function FlipBook({
+  urls,
+  page,
+  onPage,
+  reduced,
+}: {
+  urls: string[];
+  page: number;
+  onPage: (n: number) => void;
+  reduced: boolean;
+}) {
+  const host = useRef<HTMLDivElement>(null),
+    flip = useRef<PageFlip | null>(null),
+    callback = useRef(onPage),
+    requested = useRef(page);
+  callback.current = onPage;
+  requested.current = page;
+  useEffect(() => {
+    if (!host.current || !urls.length) return;
+    const parent = host.current;
+    const node = document.createElement("div");
+    parent.appendChild(node);
+    const width = parent.clientWidth;
+    const height = parent.clientHeight;
+    const pageHeight = Math.min(
+      height - 20,
+      ((width > 720 ? (width - 60) / 2 : width - 40) * 4) / 3,
+      690,
+    );
+    const p = new PageFlip(node, {
+      width: Math.round(pageHeight * 0.75),
+      height: Math.round(pageHeight),
+      size: "fixed",
+      minWidth: 180,
+      maxWidth: 650,
+      minHeight: 240,
+      maxHeight: 900,
+      showCover: true,
+      drawShadow: !reduced,
+      maxShadowOpacity: 0.3,
+      flippingTime: reduced ? 1 : 850,
+      usePortrait: true,
+      autoSize: true,
+      startPage: page,
+      mobileScrollSupport: true,
+      clickEventForward: true,
+      useMouseEvents: true,
+      swipeDistance: 35,
+      showPageCorners: !reduced,
+    });
+    p.on("flip", (e) => {
+      const n = Number(e.data);
+      if (
+        n !== requested.current &&
+        !(
+          p.getOrientation() === "landscape" &&
+          n > 0 &&
+          n + 1 === requested.current
+        )
+      )
+        callback.current(n);
+    });
+    p.loadFromImages(urls);
+    flip.current = p;
+    return () => {
+      p.destroy();
+      flip.current = null;
+      node.remove();
+    };
+  }, [urls, reduced]);
+  useEffect(() => {
+    const p = flip.current;
+    if (
+      p &&
+      p.getCurrentPageIndex() !== page &&
+      !(
+        p.getOrientation() === "landscape" &&
+        p.getCurrentPageIndex() > 0 &&
+        p.getCurrentPageIndex() + 1 === page
+      )
+    ) {
+      if (reduced) p.turnToPage(page);
+      else p.flip(page);
+    }
+  }, [page, reduced]);
+  return (
+    <div
+      className="flip-host"
+      ref={host}
+      role="img"
+      aria-label={`Comic page ${page + 1} of ${urls.length}. Use the page buttons or arrow keys to turn pages.`}
+    />
+  );
+}
+
