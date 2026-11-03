@@ -1,5 +1,9 @@
 name: Verify Panel
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -36,3 +40,33 @@ jobs:
         with:
           name: browser-test-results
           path: frontend/test-results/
+  production-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pymupdf==1.26.6 opencv-python-headless==4.11.0.86 numpy==2.2.6 httpx==0.28.1 soundfile==0.13.1
+      - run: docker build -t panel:ci .
+      - name: Start production image on a hosting-assigned port
+        run: |
+          docker run --detach --name panel-ci --label panel.validation=true --memory=4g --cpus=2 --health-interval=5s --health-start-period=5s -e PORT=10000 -e PANEL_ALLOWED_ORIGINS=https://sidharth8100.github.io -v "$PWD/tests:/validation/tests:ro" -v "$PWD/frontend/src/voices.json:/validation/frontend/src/voices.json:ro" -p 127.0.0.1:8011:10000 panel:ci
+          ready=false
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8011/api/health; then ready=true; break; fi
+            sleep 1
+          done
+          [ "$ready" = true ]
+      - name: Test real local visual casting inside the production image
+        run: docker exec -w /app panel-ci python -m pytest -q -p no:cacheprovider /validation/tests/test_casting.py
+      - run: python scripts/verify_deployment.py --base-url http://127.0.0.1:8011 --docker-container panel-ci --full-matrix --report /tmp/panel-production-validation.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-validation
+          path: /tmp/panel-production-validation.json
+      - name: Container diagnostics
+        if: failure()
+        run: docker logs panel-ci
