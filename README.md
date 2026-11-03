@@ -7,15 +7,15 @@ An accessible comic library and PDF reader, with physical page turning, editable
 - Import a PDF (up to 40 MB / 100 pages), track processing and resume from your last page.
 - Turn physical-looking pages with drag, swipe, buttons, keyboard arrows or a page slider. Single-page and reduced-motion modes are available.
 - Extract native PDF text, with CPU EasyOCR for scanned pages. Assign stable character codes and edit speaker assignments, dialogue and emotions.
-- Narrate with **Kokoro**, a local open-source neural TTS model: no paid speech API, free-trial dependency or per-character fees. Five preset character voices, adjustable playback speed/volume, and speed/pitch cues for excitement, surprise, sadness, anger and whispering. eSpeak NG is the fallback.
-- Optional vision-assisted character continuity uses a separately configured vision provider. Local OCR works without it.
-- Edit cast names, voices, fictional age/presentation cues and appearance notes; add missed characters. Export the transcript as plain text.
+- Narrate with **Kokoro**, a local open-source neural TTS model: no paid speech API, free-trial dependency or per-character fees. 28 distinct English voice presets, adjustable playback speed/volume, and 13 sentiment-driven expression styles (including joy, fear, hope, anger, sadness, whispering and sarcasm). eSpeak NG is the fallback.
+- Free local OpenCLIP visual embeddings, speech-balloon crop proposals and one comic-wide character registry match recurring characters across pages. Each new identity receives an unused voice; later pages keep that assignment. Merge split identities across the entire comic.
+- Edit cast names, voices, fictional age/presentation cues and appearance notes; add missed characters or merge duplicate identities. Export the transcript as plain text.
 - Paper, midnight and high-contrast themes; larger transcript text, extra spacing, keyboard navigation and focus mode. Preferences and reading position persist in the browser.
 - Explore **After the Light**, an original four-page illustrated demo. A static frontend can open the demo with browser speech even without the backend.
 
 ## Run the whole application
 
-Requirements: Docker with BuildKit and approximately 3 GB of available memory. Model download and image installation need Internet access during the initial build. Narration and OCR run locally afterward.
+Requirements: Docker with BuildKit and approximately 4 GB of available memory. Model download and image installation need Internet access during the initial build. Narration and OCR run locally afterward.
 
 ```bash
 docker compose up --build
@@ -34,13 +34,21 @@ The setup script prepares `/workspace/comicstudies-env`, builds the UI, verifies
 
 For separate frontend development, run `npm run dev --prefix frontend` alongside the backend. Vite proxies `/api` to loopback port 8000. Backend changes require a server restart (or `uvicorn --reload` during local development).
 
-## Character recognition: important distinction
+## Free local character intelligence
 
-The default local pipeline finds PDF text or OCR boxes, infers emotion using text cues, uses explicit `Name: dialogue` labels where present, and proposes tentative speaker matches from nearby colour/position signatures. This does **not** reliably identify characters, infer their ages or genders, or understand complex balloon-tail geometry. Uncertain matches are visibly marked for review. OCR reading order can need correction in complicated panels.
+The default stack needs **no API key, trial or paid AI service**:
 
-For stronger automatic visual understanding, set `PANEL_VISION_KEY` securely on the backend and optionally `PANEL_VISION_MODEL` (default `gpt-4o-mini`). The server sends rendered pages and the current cast to the configured OpenAI vision endpoint. The provider proposes consistent character codes, dialogue, emotion, age/presentation and appearance notes. These remain editable suggestions. **This optional analysis can incur provider charges; it is not used for TTS.** Without it, the offline extraction pipeline still runs. No provider key is shipped, and the vision path has not been tested against a live account in this environment.
+1. Native PDF text or EasyOCR finds the words and their locations.
+2. Computer vision finds likely speech-balloon regions and nearby character crop proposals. OpenCLIP selects character-rich crops and encodes appearance into visual embeddings.
+3. One character registry spans the entire comic. Confident matches reuse the same character code and frozen voice assignment. Explicit speaker names are stronger cues than visual similarity. Ambiguous matches stay unassigned for review instead of receiving an arbitrary voice.
+4. Zero-shot image/text comparisons propose a fictional age group, masculine/feminine/unspecified presentation, clothing/hair cues, or a robot-like character type. Explicit labels such as “Grandpa” also provide voice-design cues. The allocator selects an unused voice suitable for those cues; up to 24 cast members are supported from 28 available presets.
+5. VADER sentiment plus negation-aware affect cues selects one of 13 expression styles and an intensity. Kokoro runs locally; pace, pitch and amplitude follow the selected style and intensity.
 
-The neural speech model is not emotion-conditioned: expression is implemented through punctuation, voice choice, speaking speed, pitch and amplitude. It does not clone uploaded voices or guarantee actor-quality emotional performance.
+These are **editable proposals**, not reliable facts about age, gender identity or biometric identity. Complex panel layouts, obscured characters, costume changes and tiny faces can confuse the matcher. Age/presentation can remain unspecified when the evidence is weak. Confirm the cast in the reader, choose a different voice, or merge duplicate identities to fix every affected page at once. A character's voice never changes automatically simply because a later crop looks older or different. Manual voice changes apply to that character throughout the comic; assigning another character's occupied voice is rejected.
+
+Kokoro offers many timbres but is not an emotion-conditioned acting model: expressions use punctuation, voice choice, speed, pitch and amplitude. It does not clone actors or promise human-level emotional performance. Newly imported PDFs use this pipeline; older completed uploads keep their original analysis and can be reimported to use the new matcher.
+
+An optional external vision adapter is retained for experimentation. It is disabled by default, even if a key exists. Only setting both `PANEL_USE_EXTERNAL_VISION=1` and `PANEL_VISION_KEY` enables it; this can incur provider charges and is unnecessary for local casting or speech. Its live provider path remains unvalidated without a configured account.
 
 ## Deployment
 
@@ -48,7 +56,7 @@ The neural speech model is not emotion-conditioned: expression is implemented th
 
 `render.yaml` defines a Docker web service with a persistent 10 GB disk. Connect this repository in a Render account and create a Blueprint. This requires a hosting account and billing for the configured plan; no hosting credential is bundled. The production image downloads and verifies models during build, runs as an unprivileged user, and exposes `/api/health` for readiness. A single worker is required because the durable job state currently uses in-process workers and SQLite.
 
-Model weights are retained in the image, while user data persists under `/data`. Set `PANEL_VISION_KEY` only if you want external vision analysis. Configure the hosting platform's domain and HTTPS normally.
+Model weights are retained in the image, while user data persists under `/data`. No API key is required. External vision analysis is separately opt-in and disabled by default. Configure the hosting platform's domain and HTTPS normally.
 
 ### Frontend on GitHub Pages
 
@@ -62,7 +70,7 @@ Deployment configuration is not evidence of a live deployment. Check Actions and
 
 This is a capability-key personal-library prototype, not an account-based production service. A random 256-bit library key stays in browser local storage; API authorization checks protect book metadata, images, edits and audio. Clearing browser storage loses library access. There is no login, account recovery or cross-device synchronization. Anyone who obtains the key can access that library, so production HTTPS and protection against script injection are essential.
 
-Uploaded PDFs, rendered pages, dialogue and audio are stored on the server. The optional vision provider receives page images only when explicitly configured. Deleting a finished comic removes its database record and directory. Processing jobs must finish before deletion. Interrupted jobs can be retried after a restart.
+Uploaded PDFs, rendered pages, dialogue and audio are stored on the server. The optional vision provider receives page images only when explicitly enabled with `PANEL_USE_EXTERNAL_VISION=1` and a key. Deleting a finished comic removes its database record and directory. Processing jobs must finish before deletion. Interrupted jobs can be retried after a restart.
 
 Limits: 20 books per library, two active uploads per key, eight active jobs globally and 500 books per instance. Two worker threads process jobs. These quotas are not a substitute for authentication, rate limiting, a durable external queue, storage monitoring and abuse controls before opening an unrestricted public service. No credentials are included in committed files.
 
@@ -86,9 +94,24 @@ Local Chromium defaults to `/usr/bin/chromium`. Set `CHROMIUM_PATH` to override 
 - `frontend/src/App.tsx` — library, reader, cast studio, import flow and accessibility controls.
 - `frontend/src/styles.css` — responsive editorial interface and reading themes.
 - `backend/main.py` — private library API, PDF extraction, OCR and optional vision analysis.
-- `backend/speech.py` — neural voice synthesis and expressive prosody.
+- `backend/speech.py` — neural voice synthesis and sentiment-scaled expressive prosody.
+- `backend/casting.py` — free local visual embeddings, balloon crop proposals and global identity matching.
+- `backend/voice_catalog.py` — 28 distinct voices, profile cues and 13 expression styles.
+- `backend/sentiment.py` — VADER sentiment, negation and affect cues.
 - `backend/sample.py` — original procedural comic illustrations and sample dialogue.
-- `scripts/models.json` — official neural model URLs and pinned SHA-256 digests.
+- `scripts/models.json` — official Kokoro/OpenCLIP model URLs and pinned SHA-256 digests.
 - `tests/`, `frontend/e2e/` — API, browser and accessibility integration tests.
 
 See [THIRD_PARTY.md](THIRD_PARTY.md) for design references, attribution and dependency licenses. In particular, the open-source PyMuPDF edition has AGPL obligations; review these before proprietary redistribution.
+
+## Deployment regression checks
+
+The production health check follows the hosting platform's `PORT` value, including non-default ports. The expanded browser suite covers real audio auto-advance, transcript downloads, saved-position recovery, viewport rotation, damaged browser storage, all theme contrast checks, voice uniqueness and cross-page character merges.
+
+After starting an isolated test deployment, run:
+
+```bash
+python scripts/verify_deployment.py --base-url YOUR_BACKEND_ORIGIN --full-matrix --report /tmp/panel-validation.json
+```
+
+This creates a temporary private library with synthetic PDFs and checks all 28 × 13 voice/expression combinations for valid, audible, distinct WAV output, plus OCR, authorization, configured-origin CORS, edits, cache consistency and cleanup. `--docker-container NAME` additionally tests restart persistence and only accepts a container labeled `panel.validation=true`. Reported local-container results must not be presented as a verified public deployment. Public hosting still requires Pages enablement and a backend hosting account.

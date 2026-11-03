@@ -10,3 +10,6 @@ Panel's application interface, generated sample story and illustrations were cre
 - EasyOCR, OpenCV, NumPy, CairoSVG and ONNX Runtime support local extraction, rendering and inference. See their respective distribution licenses.
 
 The science-fiction sample "After the Light" is an original four-page demonstration, not a third-party comic. Do not upload comics you do not have permission to process or distribute.
+
+- [OpenCLIP](https://github.com/mlfoundations/open_clip) (MIT) supplies local image/text embeddings. The official LAION-400M ViT-B/32 QuickGELU checkpoint is fetched from the upstream GitHub release and checked against its pinned SHA-256 digest. It is used for fictional-character appearance matching and editable voice-design suggestions, not identification of real people.
+- [VADER sentiment](https://github.com/cjhutto/vaderSentiment) (MIT) supplies the bundled offline sentiment lexicon. Additional transparent affect cues map sentiment to the app's prosody controls.
