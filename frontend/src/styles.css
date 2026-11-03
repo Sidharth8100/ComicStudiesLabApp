@@ -1,0 +1,89 @@
+@import "@fontsource/dm-sans/400.css";
+@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/dm-sans/600.css";
+@import "@fontsource/manrope/500.css";
+@import "@fontsource/manrope/600.css";
+@import "@fontsource/manrope/700.css";
+:root {
+  font-family: "DM Sans", sans-serif;
+  color: #23372e;
+  background: #f7f6f2;
+  font-synthesis: none;
+  --paper: #f7f6f2;
+  --surface: #fffefa;
+  --ink: #23372e;
+  --muted: #626b5d;
+  --line: #e3e5db;
+  --green: #294c3b;
+  --accent: #c4dba0;
+  --stage: #e9e9df;
+  --serif: Georgia, "Times New Roman", serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+  color: inherit;
+}
+button {
+  border: 0;
+  background: none;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+button,
+a,
+input,
+select,
+textarea {
+  outline-offset: 5px;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #a3af67;
+}
+a {
+  color: inherit;
+}
+button svg {
+  flex-shrink: 0;
+}
+button {
+  transition:
+    background 0.2s,
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+::selection {
+  background: #c4dba0;
+  color: #172d23;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+img {
+  display: block;
+  max-width: 100%;
+}
