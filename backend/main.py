@@ -144,3 +144,13 @@ def save(b, who=None):
             c.execute("INSERT INTO books VALUES (?,?,?)", (b["id"], who, json.dumps(b)))
         else:
             c.execute("UPDATE books SET body=? WHERE id=?", (json.dumps(b), b["id"]))
+
+
+def get_book(book_id, who=None):
+    if not re.fullmatch(r"[a-f0-9]{32}", book_id):
+        raise HTTPException(404, "Comic not found.")
+    with connect() as c:
+        r = c.execute("SELECT * FROM books WHERE id=?", (book_id,)).fetchone()
+    if not r or (who and r["owner"] != who):
+        raise HTTPException(404, "Comic not found.")
+    return json.loads(r["body"])
