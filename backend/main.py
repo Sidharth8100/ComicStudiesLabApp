@@ -136,3 +136,11 @@ def owner(authorization: str | None):
     if not authorization or not re.fullmatch(r"Bearer [a-f0-9]{64}", authorization):
         raise HTTPException(401, "A library access key is required.")
     return hashlib.sha256(authorization.encode()).hexdigest()
+
+
+def save(b, who=None):
+    with LOCK, connect() as c:
+        if who:
+            c.execute("INSERT INTO books VALUES (?,?,?)", (b["id"], who, json.dumps(b)))
+        else:
+            c.execute("UPDATE books SET body=? WHERE id=?", (json.dumps(b), b["id"]))
