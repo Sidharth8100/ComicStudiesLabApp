@@ -179,3 +179,120 @@ small {
   flex-direction: column;
   gap: 7px;
 }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 16px;
+  color: #c4cebe;
+  border-radius: 7px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+}
+.nav-item.selected {
+  color: #203c2f;
+  background: #d8e5bf;
+}
+.nav-item:not(.selected):hover {
+  background: #304d3d;
+}
+.nav-item small {
+  margin-left: auto;
+  background: #395040;
+  color: #d0dcc2;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.sidebar-upload {
+  border: 1px solid #607357;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 7px;
+  padding: 12px 9px;
+  font-size: 12px;
+  margin: 25px 3px 0;
+}
+.sidebar-upload:hover {
+  background: #3d5743;
+}
+.sidebar-note {
+  background: #2b4837;
+  border: 1px solid #476046;
+  border-radius: 10px;
+  margin: 48px 2px 20px;
+  padding: 21px 18px 18px;
+  position: relative;
+  overflow: hidden;
+}
+.tiny-orbit {
+  position: absolute;
+  right: -7px;
+  top: 3px;
+  font-size: 90px;
+  font-weight: 100;
+  line-height: 1;
+  color: #657d51;
+  transform: rotate(12deg);
+}
+.sidebar-note h3 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 25px;
+  line-height: 1.2;
+  position: relative;
+}
+.sidebar-note p {
+  color: #b1c1a8;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 14px 0 18px;
+}
+.sidebar-note button {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 10px;
+  padding: 0;
+  color: #e5edcc;
+}
+.sidebar-bottom {
+  margin-top: auto;
+  padding-top: 50px;
+}
+.sidebar-bottom > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #bdccaf;
+  padding: 10px;
+}
+.profile {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-top: 1px solid #466047;
+  padding: 21px 1px 0;
+  margin-top: 17px;
+  font-size: 11px;
+}
+.profile small {
+  display: block;
+  color: #a5b59e;
+  font-size: 9px;
+  margin-top: 4px;
+}
+.avatar,
+.mini-avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #dfd3ba;
+  color: #544f3e;
+  font-size: 12px;
+  width: 33px;
+  height: 33px;
+}
