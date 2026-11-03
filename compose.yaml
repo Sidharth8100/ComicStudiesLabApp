@@ -1,0 +1,13 @@
+services:
+  panel:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - panel-library:/data
+    environment:
+      PANEL_VISION_KEY: ${PANEL_VISION_KEY:-}
+      PANEL_VISION_MODEL: ${PANEL_VISION_MODEL:-gpt-4o-mini}
+    restart: unless-stopped
+volumes:
+  panel-library:
