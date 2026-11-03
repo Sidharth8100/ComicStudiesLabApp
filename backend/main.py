@@ -631,3 +631,24 @@ def add_cast(
         )
         save(b)
     return b
+
+
+@app.patch("/api/books/{book_id}/characters/{code}")
+def edit_cast(
+    book_id: str,
+    code: str,
+    edit: CastEdit,
+    authorization: str | None = Header(default=None),
+):
+    if edit.voice not in VOICES:
+        raise HTTPException(422, "Unknown voice.")
+    with LOCK:
+        b = get_book(book_id, owner(authorization))
+        if b["status"] != "ready":
+            raise HTTPException(409, "Wait for analysis to finish.")
+        c = next((c for c in b["characters"] if c["id"] == code), None)
+        if not c:
+            raise HTTPException(404, "Character not found.")
+        c.update(edit.model_dump(), confidence="reviewed")
+        save(b)
+    return b
