@@ -144,3 +144,71 @@ function IconButton({
     </button>
   );
 }
+function Modal({
+  title,
+  children,
+  onClose,
+  wide = false,
+}: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+  wide?: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement;
+    const node = ref.current!;
+    const focusable = () =>
+      Array.from(
+        node.querySelectorAll<HTMLElement>(
+          'button,input,select,textarea,[tabindex="0"]',
+        ),
+      ).filter((e) => !e.hasAttribute("disabled"));
+    focusable()[0]?.focus();
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close.current();
+      if (e.key === "Tab") {
+        const items = focusable();
+        if (e.shiftKey && document.activeElement === items[0]) {
+          e.preventDefault();
+          items.at(-1)?.focus();
+        } else if (!e.shiftKey && document.activeElement === items.at(-1)) {
+          e.preventDefault();
+          items[0]?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => {
+      document.removeEventListener("keydown", handler);
+      previous?.focus();
+    };
+  }, []);
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`modal ${wide ? "wide" : ""}`}
+        ref={ref}
+      >
+        <div className="modal-heading">
+          <h2>{title}</h2>
+          <IconButton label="Close dialog" onClick={onClose}>
+            <X size={21} />
+          </IconButton>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
