@@ -433,3 +433,14 @@ def analyze(book_id):
             error="Could not process this PDF. Verify that it contains readable pages, then retry.",
         )
         save(b)
+
+
+@app.get("/api/health")
+def health():
+    return {
+        "status": "ok",
+        "speech": neural_available()
+        or bool(shutil.which("espeak-ng") or shutil.which("espeak")),
+        "speechEngine": "kokoro" if neural_available() else "espeak",
+        "vision": bool(os.getenv("PANEL_VISION_KEY")),
+    }
