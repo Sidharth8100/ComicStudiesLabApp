@@ -63,3 +63,24 @@ def test_password_protected_pdf():
             encryption=fitz.PDF_ENCRYPT_AES_256, owner_pw="owner", user_pw="secret"
         )
     assert upload(encrypted).status_code == 400
+
+
+def test_native_pdf_roundtrip_and_access_control():
+    r = upload()
+    assert r.status_code == 202
+    b = ready(r.json()["id"])
+    assert b["status"] == "ready"
+    assert b["pages"][0]["lines"][0]["text"] == "Hello from the uploaded comic!"
+    assert any(c["name"] == "Ada" for c in b["characters"])
+    url = f"/api/books/{b['id']}"
+    assert client.get(url, headers=OTHER).status_code == 404
+    assert client.get(url + "/pages/0", headers=OTHER).status_code == 404
+    assert (
+        client.get(url + "/pages/0", headers=AUTH).headers["content-type"]
+        == "image/png"
+    )
+    assert client.get(url + "/pages/-1", headers=AUTH).status_code == 404
+    assert client.get(url + "/pages/999", headers=AUTH).status_code == 404
+    assert client.post(url + "/retry", headers=AUTH).status_code == 409
+    assert client.delete(url, headers=AUTH).status_code == 204
+    assert client.get(url, headers=AUTH).status_code == 404
