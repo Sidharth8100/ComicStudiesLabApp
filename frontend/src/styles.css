@@ -1541,9 +1541,9 @@ small {
   align-items: center;
   justify-content: center;
   padding: 25px;
-  animation: fadein 0.2s;
 }
 .modal {
+  animation: modal-enter 0.18s ease-out;
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -1951,13 +1951,11 @@ kbd {
     transform: scaleY(0.35);
   }
 }
-@keyframes fadein {
+@keyframes modal-enter {
   from {
-    opacity: 0;
     transform: translateY(5px);
   }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }
