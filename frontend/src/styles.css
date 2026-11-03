@@ -1650,3 +1650,97 @@ small {
 .settings-section {
   margin-bottom: 21px;
 }
+.setting-label {
+  font-size: 8px;
+  letter-spacing: 1.3px;
+  color: var(--muted);
+}
+.theme-options {
+  display: flex;
+  gap: 9px;
+  margin-top: 13px;
+}
+.theme-options > button {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 15px 6px;
+  font-size: 10px;
+  position: relative;
+}
+.theme-options .selected {
+  background: #e2ead7;
+  border-color: #7b9864;
+  color: #253d2e;
+}
+.theme-options > button > svg:last-child:not(:first-child) {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+}
+.setting-toggles {
+  margin: 20px 0 25px;
+}
+.setting-row {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding: 16px 0;
+  cursor: pointer;
+}
+.setting-row > svg {
+  color: #718262;
+}
+.setting-row > span {
+  flex: 1;
+}
+.setting-row strong {
+  font-size: 12px;
+  font-weight: 500;
+  display: block;
+}
+.setting-row small {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  margin-top: 23px;
+}
+.edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.edit-form input,
+.edit-form select,
+.edit-form textarea {
+  width: 100%;
+  font-size: 12px;
+  color: var(--ink);
+}
+.edit-form textarea {
+  resize: vertical;
+  min-height: 75px;
+  line-height: 1.7;
+}
+.edit-form .privacy-note {
+  margin: 0;
+}
+.code-label {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
