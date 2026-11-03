@@ -558,3 +558,15 @@ async def upload(
 @app.get("/api/books/{book_id}")
 def book(book_id: str, authorization: str | None = Header(default=None)):
     return get_book(book_id, owner(authorization))
+
+
+@app.post("/api/books/{book_id}/retry", status_code=202)
+def retry(book_id: str, authorization: str | None = Header(default=None)):
+    with LOCK:
+        b = get_book(book_id, owner(authorization))
+        if b["status"] != "error":
+            raise HTTPException(409, "Only failed jobs can be retried.")
+        b.update(status="queued", progress=0, error=None)
+        save(b)
+        POOL.submit(analyze, book_id)
+    return b
