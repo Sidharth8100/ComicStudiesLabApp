@@ -84,3 +84,42 @@ def test_native_pdf_roundtrip_and_access_control():
     assert client.post(url + "/retry", headers=AUTH).status_code == 409
     assert client.delete(url, headers=AUTH).status_code == 204
     assert client.get(url, headers=AUTH).status_code == 404
+
+
+def test_demo_cast_transcript_and_real_speech():
+    b = client.post("/api/demo", headers=AUTH).json()
+    assert b["demo"] and len(b["pages"]) == 4
+    assert client.post("/api/demo", headers=AUTH).json()["id"] == b["id"]
+    url = f"/api/books/{b['id']}"
+    char = b["characters"][1]
+    char["voice"] = "deep"
+    char["name"] = "Nova Star"
+    r = client.patch(url + "/characters/CHAR-01", headers=AUTH, json=char)
+    assert r.status_code == 200 and r.json()["characters"][1]["name"] == "Nova Star"
+    line = b["pages"][1]["lines"][0]
+    line.update(
+        text="Stop! We have to save the city!", emotion="angry", character="CHAR-01"
+    )
+    assert (
+        client.patch(url + "/lines/" + line["id"], headers=AUTH, json=line).status_code
+        == 200
+    )
+    audio = client.get(url + "/speech/" + line["id"], headers=AUTH)
+    assert audio.status_code == 200
+    assert audio.content.startswith(b"RIFF") and len(audio.content) > 1000
+    assert client.get(url + "/speech/" + line["id"], headers=OTHER).status_code == 404
+    assert (
+        client.patch(
+            url + "/lines/" + line["id"],
+            headers=AUTH,
+            json={**line, "emotion": "bogus"},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.patch(
+            url + "/characters/CHAR-01", headers=AUTH, json={**char, "voice": "bogus"}
+        ).status_code
+        == 422
+    )
+    assert client.get(url + "/speech/bogus", headers=AUTH).status_code == 404
