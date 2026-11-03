@@ -1850,3 +1850,73 @@ kbd {
 .skip-link:focus {
   top: 10px;
 }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+.large-text .dialogue-text {
+  font-size: 18px;
+}
+.large-text .transcript-heading {
+  font-size: 10px;
+}
+.large-text .speaker-heading {
+  font-size: 13px;
+}
+.spaced .dialogue-text {
+  letter-spacing: 0.08em;
+  line-height: 2;
+}
+.reduce-motion * {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+[data-theme="night"] {
+  --paper: #1c2925;
+  --surface: #27352f;
+  --ink: #e4ebd9;
+  --muted: #a6b29f;
+  --line: #3b4b3e;
+  --green: #758f5e;
+  --accent: #d7e8bf;
+  --stage: #16221e;
+}
+[data-theme="night"] .hero-art:before {
+  background: #304338;
+}
+[data-theme="night"] .hero h1 em,
+[data-theme="night"] .narration-intro h2 em {
+  color: #acbf8d;
+}
+[data-theme="night"] .dialogue-text {
+  color: #cbd4be;
+}
+[data-theme="night"] .transcript-line.speaking {
+  background: #31432f;
+  border-color: #627852;
+}
+[data-theme="night"] .cast-card {
+  background: #27352f;
+}
+[data-theme="night"] .book-card-top,
+[data-theme="night"] .import-card {
+  background: #2c3d30;
+}
+[data-theme="night"] .dropzone {
+  background: #2d3e2d;
+}
+[data-theme="night"] .theme-options .selected {
+  background: #405438;
+  color: #edf6dd;
+}
