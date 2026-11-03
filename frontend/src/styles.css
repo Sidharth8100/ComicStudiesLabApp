@@ -1276,3 +1276,94 @@ small {
   letter-spacing: 1px;
   margin-top: 10px;
 }
+.line-tools button {
+  font-size: 8px;
+  text-decoration: underline;
+  padding: 0;
+  letter-spacing: 0;
+}
+.mini-bars {
+  font-size: 10px;
+  letter-spacing: 0;
+}
+.narration-tip {
+  margin: 18px 25px 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 10px;
+  color: #626b5d;
+  flex-shrink: 0;
+}
+.narration-tip > svg {
+  margin-top: 3px;
+}
+.narration-tip p {
+  font-size: 9px;
+  line-height: 1.7;
+}
+.narration-tip button {
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 0 0;
+  color: #4c6a41;
+}
+.cast-intro {
+  padding: 24px;
+}
+.cast-intro > .eyebrow {
+  font-size: 6px;
+}
+.cast-intro h2 {
+  font-size: 24px;
+  font-family: var(--serif);
+  font-weight: 400;
+  margin: 13px 0;
+}
+.cast-intro p {
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.cast-list {
+  padding: 0 20px 20px;
+}
+.cast-card {
+  display: grid;
+  grid-template-columns: 39px 1fr 16px;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 15px 13px;
+  margin-bottom: 12px;
+  gap: 10px;
+  width: 100%;
+}
+.cast-card:hover {
+  border-color: #839a72;
+  transform: translateY(-2px);
+}
+.cast-avatar {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 44px;
+  border-radius: 6px;
+  font-family: var(--serif);
+  font-size: 21px;
+  color: #24382d;
+}
+.cast-card strong {
+  display: block;
+  font-size: 12px;
+}
+.cast-card small {
+  font-size: 7px;
+  color: var(--muted);
+  display: block;
+  margin-top: 3px;
+  letter-spacing: 1px;
+}
