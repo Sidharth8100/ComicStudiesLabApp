@@ -152,3 +152,37 @@ def test_emotion_detection():
     assert emotion("Stop!") == "angry"
     assert emotion("What?!") == "surprised"
     assert emotion("We did it!") == "excited"
+
+
+def test_add_character_and_reassign_dialogue():
+    b = client.post("/api/demo", headers=AUTH).json()
+    url = f"/api/books/{b['id']}"
+    r = client.post(
+        url + "/characters",
+        headers=AUTH,
+        json={
+            "name": "Comet",
+            "voice": "electric",
+            "age": "teen",
+            "presentation": "unspecified",
+            "appearance": "Blue jacket",
+        },
+    )
+    assert r.status_code == 200
+    added = r.json()["characters"][-1]
+    assert added["name"] == "Comet" and added["id"] == "CHAR-03"
+    l = b["pages"][0]["lines"][0]
+    assert (
+        client.patch(
+            url + "/lines/" + l["id"],
+            headers=AUTH,
+            json={**l, "character": added["id"]},
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            url + "/characters", headers=OTHER, json={"name": "Other", "voice": "warm"}
+        ).status_code
+        == 404
+    )
