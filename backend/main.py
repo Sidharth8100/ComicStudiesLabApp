@@ -444,3 +444,8 @@ def health():
         "speechEngine": "kokoro" if neural_available() else "espeak",
         "vision": bool(os.getenv("PANEL_VISION_KEY")),
     }
+
+
+@app.get("/api/voices")
+def voices():
+    return VOICES
