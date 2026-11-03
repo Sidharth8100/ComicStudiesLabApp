@@ -498,3 +498,114 @@ small {
 .stacked-avatars i:nth-child(2) {
   background: #b2c5b1;
 }
+.stacked-avatars i:nth-child(3) {
+  background: #d7dabc;
+}
+.hero-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 460px;
+  isolation: isolate;
+}
+.hero-art:before {
+  content: "";
+  width: 360px;
+  height: 360px;
+  background: #e4e9d8;
+  border-radius: 50%;
+  position: absolute;
+  z-index: -2;
+}
+.hero-book {
+  position: relative;
+  width: 265px;
+  transform: rotate(8deg);
+  filter: drop-shadow(15px 22px 15px #273a293d);
+  transition: transform 0.6s;
+}
+.hero-art:hover .hero-book {
+  transform: rotate(3deg) translateY(-6px);
+}
+.hero-book img {
+  border-radius: 1px 5px 5px 1px;
+  aspect-ratio: 3/4;
+}
+.book-spine {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 15px;
+  background: linear-gradient(90deg, #0008, transparent);
+  border-left: 2px solid #f6e9c94d;
+}
+.hero-book:after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: -5px;
+  left: 4px;
+  right: -5px;
+  border-radius: 0 3px 3px 0;
+  border-bottom: 5px solid #dfd5bd;
+  border-right: 4px solid #ded2bd;
+  z-index: -1;
+  box-shadow: 2px 2px 0 #b5b8a3;
+}
+.art-orbit {
+  position: absolute;
+  z-index: -1;
+  border: 1px solid #c6d0b8;
+  border-radius: 50%;
+  height: 420px;
+  width: 330px;
+  transform: rotate(-30deg);
+}
+.orbit-two {
+  width: 410px;
+  height: 320px;
+  transform: rotate(30deg);
+}
+.art-spark {
+  position: absolute;
+  color: #677e58;
+  font-family: var(--serif);
+}
+.spark-one {
+  font-size: 60px;
+  top: 10px;
+  right: 10px;
+}
+.spark-two {
+  font-size: 36px;
+  bottom: 70px;
+  left: 7px;
+}
+.art-label {
+  position: absolute;
+  right: 0;
+  bottom: 43px;
+  display: flex;
+  align-items: center;
+  background: #fffff6;
+  border: 1px solid #e1e5d6;
+  border-radius: 9px;
+  padding: 13px 16px;
+  gap: 13px;
+  box-shadow: 0 8px 25px #33473512;
+  transform: rotate(-4deg);
+  font-size: 10px;
+  color: #66745b;
+}
+.art-label strong {
+  display: block;
+  color: #263e30;
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+.sound-bars {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  height: 24px;
+}
