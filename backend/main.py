@@ -287,3 +287,84 @@ def local_lines(page, png, cast, signatures):
             }
         )
     return lines
+
+
+def vision_lines(png, cast):
+    """Optional vision-assisted character continuity. Never pretend local heuristics are a VLM."""
+    key = os.getenv("PANEL_VISION_KEY")
+    if not key:
+        return None
+    prompt = (
+        """Analyze this comic page. Read dialogue in panel reading order. Track recurring fictional characters using the supplied cast. Return ONLY a JSON object {"characters":[{"id":"CHAR-01","name":"name or descriptive label","appearance":"visible clothing/hair/style","age":"child|teen|adult|older adult|unspecified","presentation":"masculine|feminine|androgynous|unspecified","voice":"warm|bright|deep|soft|electric"}],"lines":[{"text":"exact visible dialogue","character":"CHAR-01 or NARRATOR","emotion":"neutral|excited|angry|sad|whispering|surprised","box":[x0,y0,x1,y1]}]}. Coordinates normalized 0..1. Include captions and sound effects as NARRATOR. Do not invent dialogue or identify real people. Age and presentation are tentative fictional voice design cues, not facts; use unspecified when unclear. Existing cast: """
+        + json.dumps(cast)
+    )
+    with httpx.Client(timeout=100) as client:
+        r = client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}"},
+            json={
+                "model": os.getenv("PANEL_VISION_MODEL", "gpt-4o-mini"),
+                "response_format": {"type": "json_object"},
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": "data:image/png;base64,"
+                                    + base64.b64encode(png.read_bytes()).decode()
+                                },
+                            },
+                        ],
+                    }
+                ],
+                "max_tokens": 5000,
+            },
+        )
+        r.raise_for_status()
+        data = json.loads(r.json()["choices"][0]["message"]["content"])
+    known = {c["id"]: c for c in cast}
+    for c in data.get("characters", [])[:16]:
+        code = str(c.get("id", ""))
+        if not re.fullmatch(r"CHAR-\d{2}", code):
+            continue
+        known[code] = character(
+            code,
+            str(c.get("name", code))[:60],
+            appearance=str(c.get("appearance", ""))[:300],
+            age=str(c.get("age", "unspecified"))[:30],
+            presentation=str(c.get("presentation", "unspecified"))[:30],
+            voice=c.get("voice") if c.get("voice") in VOICES else "warm",
+            confidence="vision proposal",
+        )
+    cast[:] = list(known.values())
+    lines = []
+    for l in data.get("lines", [])[:160]:
+        text = str(l.get("text", "")).strip()[:1500]
+        if not text:
+            continue
+        box = l.get("box", [0, 0, 1, 1])
+        if (
+            not isinstance(box, list)
+            or len(box) != 4
+            or not all(isinstance(v, (float, int)) and 0 <= v <= 1 for v in box)
+        ):
+            box = [0, 0, 1, 1]
+        lines.append(
+            {
+                "id": uuid.uuid4().hex,
+                "text": text,
+                "character": l.get("character")
+                if l.get("character") in known
+                else "NARRATOR",
+                "emotion": l.get("emotion")
+                if l.get("emotion") in EMOTIONS
+                else "neutral",
+                "box": box,
+                "confidence": None,
+                "assignment": "vision proposal",
+            }
+        )
+    return lines
