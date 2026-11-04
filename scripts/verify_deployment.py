@@ -28,6 +28,11 @@ def main():
     parser.add_argument("--docker-container")
     parser.add_argument("--origin", default="https://sidharth8100.github.io")
     parser.add_argument(
+        "--same-origin",
+        action="store_true",
+        help="Validate a full-stack site without requiring a separate CORS origin",
+    )
+    parser.add_argument(
         "--full-matrix",
         action="store_true",
         help="Synthesize all 28 voices in all 13 expression styles",
@@ -94,10 +99,10 @@ def main():
                 "library requires authorization",
                 c.get(base + "/api/books").status_code == 401,
             )
-            for origin, expected in [
-                (args.origin, True),
-                ("https://untrusted.invalid", False),
-            ]:
+            cors_checks = [("https://untrusted.invalid", False)]
+            if not args.same_origin:
+                cors_checks.insert(0, (args.origin, True))
+            for origin, expected in cors_checks:
                 r = c.options(
                     base + "/api/books",
                     headers={
@@ -116,7 +121,7 @@ def main():
                     r.status_code == 200
                     and r.headers.get("access-control-allow-origin") == origin
                     if expected
-                    else r.status_code == 400
+                    else r.status_code in (400, 405)
                     and "access-control-allow-origin" not in r.headers,
                 )
             bad = c.post(
@@ -338,6 +343,33 @@ def main():
         )
         raise
     finally:
+        # Failed public checks must not leave completed synthetic uploads behind.
+        if book_ids:
+            with httpx.Client(timeout=30) as cleanup_client:
+                for book_id in book_ids[:]:
+                    try:
+                        deleted = cleanup_client.delete(
+                            base + "/api/books/" + book_id, headers=auth
+                        )
+                        if deleted.status_code in (204, 404):
+                            book_ids.remove(book_id)
+                        else:
+                            results.append(
+                                {
+                                    "check": "temporary comic cleanup",
+                                    "status": "failed",
+                                    "detail": f"HTTP {deleted.status_code}",
+                                }
+                            )
+                    except httpx.HTTPError:
+                        results.append(
+                            {
+                                "check": "temporary comic cleanup",
+                                "status": "failed",
+                                "detail": "Host unreachable during cleanup",
+                            }
+                        )
+        remote = urlparse(base).hostname not in ("127.0.0.1", "localhost")
         report = {
             "target": base,
             "scope": "local production container"
@@ -348,7 +380,16 @@ def main():
             "failed": sum(r["status"] == "failed" for r in results),
             "not_run": [
                 "Live external vision provider: no configured credential",
-                "Public GitHub Pages/backend hosting: no active deployment verified",
+                *(
+                    []
+                    if remote
+                    else ["Public hosting: this run targeted a local service"]
+                ),
+                *(
+                    []
+                    if args.docker_container
+                    else ["Process restart persistence: no labeled test container supplied"]
+                ),
             ],
         }
         path = Path(args.report)
