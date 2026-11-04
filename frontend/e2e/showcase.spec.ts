@@ -34,6 +34,24 @@ test("3D cover works with keyboard controls, feature tabs, and reduced motion", 
   await expect
     .poll(async () => !(await stage.screenshot()).equals(rotated))
     .toBe(true);
+  if ((await sculpture.getAttribute("class"))?.includes("is-ready")) {
+    const contextLost = await stage
+      .locator("canvas")
+      .evaluate((canvas: HTMLCanvasElement) => {
+        const context = canvas.getContext("webgl2");
+        const extension = context?.getExtension("WEBGL_lose_context");
+        extension?.loseContext();
+        return Boolean(extension);
+      });
+    if (contextLost) {
+      await expect(sculpture).toHaveClass(/is-fallback/);
+      await expect(stage.locator(".sc-book-poster")).toHaveCSS("opacity", "1");
+      await page.getByRole("button", { name: "Rotate book left" }).click();
+      await expect(
+        page.getByRole("status").filter({ hasText: "Book rotated left" }),
+      ).toBeVisible();
+    }
+  }
   const pages = page.getByRole("tab", { name: "Feel the page" });
   await pages.focus();
   await page.keyboard.press("ArrowRight");
@@ -214,4 +232,51 @@ test("a device without WebGL keeps an interactive cover and a working reader", a
     .toBe(original);
   await page.getByRole("button", { name: "Explore a story" }).click();
   await expect(page.locator(".flip-host canvas")).toBeVisible();
+});
+
+test("switching characters cancels a pending preview without starting stale audio", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    (window as unknown as { previewSpeechCalls: number }).previewSpeechCalls =
+      0;
+    window.speechSynthesis.speak = () => {
+      (window as unknown as { previewSpeechCalls: number })
+        .previewSpeechCalls++;
+    };
+  });
+  let release!: () => void;
+  let arrived!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const requested = new Promise<void>((resolve) => {
+    arrived = resolve;
+  });
+  await page.route("**/api/demo", async (route) => {
+    arrived();
+    await pending;
+    await route.abort("aborted");
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Preview Nova voice" }).click();
+  await requested;
+  await expect(
+    page.getByRole("button", { name: "Cancel voice preview" }),
+  ).toBeVisible();
+  await page.getByRole("tab", { name: /Echo/ }).click();
+  release();
+  await expect(page.locator(".sc-preview-status")).toHaveText(
+    "Ready to hear Echo.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Preview Echo voice" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { previewSpeechCalls: number })
+          .previewSpeechCalls,
+    ),
+  ).toBe(0);
 });
