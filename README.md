@@ -2,6 +2,15 @@
 
 An accessible comic library and PDF reader, with physical page turning, editable character casting, expressive local neural narration and a synchronized transcript. Built on the original Comic Studies Lab research notebooks, which are preserved unchanged.
 
+![Panel discovery page with its interactive 3D comic](docs/discovery.jpg)
+
+<details>
+<summary>See the comic reader</summary>
+
+![Panel's paper-turn reader, synchronized transcript and narration controls](docs/reader.jpg)
+
+</details>
+
 ## What works
 
 - Explore a full-width, cinematic discovery page with an original Three.js book you can drag or rotate with the keyboard, interactive reader scenes, scroll-linked depth and a working character voice studio. Reduced motion, offscreen GPU pausing and a CSS cover fallback keep it usable across devices.
