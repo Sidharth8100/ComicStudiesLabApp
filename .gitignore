@@ -13,3 +13,5 @@ test-results/
 *.log
 
 *.tsbuildinfo
+
+.hosting-env/

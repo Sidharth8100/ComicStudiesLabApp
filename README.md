@@ -69,6 +69,10 @@ An optional external vision adapter is retained for experimentation. It is disab
 
 ## Deployment
 
+### Start with temporary uploads
+
+For a small demo, [the ephemeral hosting option](docs/FREE-DEMO.md) uses Modal's available free compute allowance, no persistent disk and no paid AI API. The full app runs at one HTTPS address, with a temporary-library notice before import. Uploads and edits disappear when the server container is recycled. Free compute is quota-limited; check the account's current allowance and billing terms. `.github/workflows/deploy-demo.yml` publishes it after a Modal account is connected.
+
 ### Full stack on Render
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Sidharth8100/ComicStudiesLabApp)
