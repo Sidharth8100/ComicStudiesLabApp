@@ -672,6 +672,7 @@ export default function App() {
       setPlaying(false);
       setLineIndex(0);
       lastBook.current = book?.id || "";
+      if (book) window.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [book?.id]);
   async function openDemo() {
@@ -939,6 +940,9 @@ export default function App() {
               return (
                 <button
                   key={String(label)}
+                  aria-label={String(label)}
+                  aria-current={nav === label ? "page" : undefined}
+                  title={String(label)}
                   className={nav === label ? "nav-item selected" : "nav-item"}
                   onClick={() => {
                     setNav(String(label));

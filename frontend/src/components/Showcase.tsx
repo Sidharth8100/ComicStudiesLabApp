@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -9,6 +9,8 @@ import {
   Headphones,
   Layers3,
   LoaderCircle,
+  Menu,
+  X,
   Pause,
   Play,
   Plus,
@@ -62,6 +64,27 @@ const cast = [
     tone: "Measured. Grounded. Always with you.",
   },
 ];
+
+/** Tabs use the standard arrow/Home/End interaction and one tab stop. */
+function navigateTabs(event: KeyboardEvent<HTMLDivElement>) {
+  const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+  if (!keys.includes(event.key)) return;
+  const tabs = Array.from(
+    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+  );
+  const index = tabs.indexOf(document.activeElement as HTMLButtonElement);
+  if (index < 0) return;
+  event.preventDefault();
+  const next =
+    event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? tabs.length - 1
+        : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) %
+          tabs.length;
+  tabs[next]?.focus();
+  tabs[next]?.click();
+}
 
 function useScrollScenes(
   root: React.RefObject<HTMLDivElement | null>,
@@ -118,6 +141,8 @@ function useScrollScenes(
 
 function VoiceStudio() {
   const [selected, setSelected] = useState(0);
+  const [previewText, setPreviewText] = useState(cast[0].line);
+  const request = useRef<AbortController | null>(null);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("Choose a character. Hear their world.");
@@ -127,6 +152,8 @@ function VoiceStudio() {
   const browserSpeech = useRef(false);
   const stop = () => {
     sequence.current++;
+    request.current?.abort();
+    request.current = null;
     sound.current?.pause();
     sound.current = null;
     if (url.current) URL.revokeObjectURL(url.current);
@@ -139,6 +166,7 @@ function VoiceStudio() {
   useEffect(
     () => () => {
       sequence.current++;
+      request.current?.abort();
       sound.current?.pause();
       if (url.current) URL.revokeObjectURL(url.current);
       if (browserSpeech.current) window.speechSynthesis?.cancel();
@@ -153,18 +181,30 @@ function VoiceStudio() {
     }
     const current = ++sequence.current;
     const character = cast[selected];
+    const controller = new AbortController();
+    request.current = controller;
     setLoading(true);
     setStatus(`Preparing ${character.name}’s voice…`);
     try {
-      const book = await api<Book>("/demo", { method: "POST" });
-      const line = book.pages
-        .flatMap((p) => p.lines)
-        .find((l) => l.character === character.id);
+      const book = await api<Book>("/demo", {
+        method: "POST",
+        signal: controller.signal,
+      });
+      const lines = book.pages.flatMap((p) => p.lines);
+      const line =
+        lines.find(
+          (l) => l.character === character.id && l.text === character.line,
+        ) || lines.find((l) => l.character === character.id);
       if (!line)
         throw Error(
           "This sample character was merged. Open the story to review your cast.",
         );
-      const objectUrl = await media(`/books/${book.id}/speech/${line.id}`);
+      if (current !== sequence.current) return;
+      setPreviewText(line.text);
+      const objectUrl = await media(
+        `/books/${book.id}/speech/${line.id}`,
+        controller.signal,
+      );
       if (current !== sequence.current) {
         URL.revokeObjectURL(objectUrl);
         return;
@@ -192,10 +232,15 @@ function VoiceStudio() {
       }
     } catch (error) {
       if (current !== sequence.current) return;
+      sound.current?.pause();
+      sound.current = null;
+      if (url.current) URL.revokeObjectURL(url.current);
+      url.current = "";
       if (
         "speechSynthesis" in window &&
         !(error instanceof Error && error.message.includes("merged"))
       ) {
+        setPreviewText(character.line);
         const speech = new SpeechSynthesisUtterance(character.line);
         const voices = speechSynthesis
           .getVoices()
@@ -238,17 +283,20 @@ function VoiceStudio() {
         className="sc-cast-selector"
         role="tablist"
         aria-label="Preview a character voice"
+        onKeyDown={navigateTabs}
       >
         {cast.map((person, i) => (
           <button
             role="tab"
             aria-selected={i === selected}
+            tabIndex={i === selected ? 0 : -1}
             aria-controls="voice-preview-panel"
             id={`voice-tab-${i}`}
             key={person.id}
             onClick={() => {
               stop();
               setSelected(i);
+              setPreviewText(person.line);
               setStatus(`Ready to hear ${person.name}.`);
             }}
           >
@@ -286,7 +334,7 @@ function VoiceStudio() {
           <span className="sc-kicker">
             {c.name.toUpperCase()} / {c.descriptor}
           </span>
-          <blockquote>“{c.line}”</blockquote>
+          <blockquote>“{previewText}”</blockquote>
           <p>{c.tone}</p>
           <div className={`sc-listen-row ${playing ? "is-playing" : ""}`}>
             <button
@@ -341,6 +389,7 @@ export default function Showcase({
   reducedMotion,
 }: Props) {
   const root = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [experience, setExperience] = useState<"pages" | "voices" | "focus">(
     "pages",
   );
@@ -353,17 +402,34 @@ export default function Showcase({
       <header className="sc-header">
         <a className="sc-wordmark" href="#main" aria-label="Panel home">
           <BookOpen size={24} strokeWidth={1.6} />
-          panel<span>®</span>
+          panel<span>•</span>
         </a>
-        <nav aria-label="Main navigation">
+        <nav
+          id="showcase-navigation"
+          aria-label="Main navigation"
+          className={menuOpen ? "is-open" : ""}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setMenuOpen(false);
+              root.current
+                ?.querySelector<HTMLButtonElement>(".sc-menu-toggle")
+                ?.focus();
+            }
+          }}
+        >
           <button
             aria-current="page"
-            onClick={() =>
+            onClick={() => {
+              setMenuOpen(false);
               window.scrollTo({
                 top: 0,
-                behavior: reducedMotion ? "instant" : "smooth",
-              })
-            }
+                behavior:
+                  reducedMotion ||
+                  matchMedia("(prefers-reduced-motion: reduce)").matches
+                    ? "instant"
+                    : "smooth",
+              });
+            }}
           >
             Discover
           </button>
@@ -372,7 +438,16 @@ export default function Showcase({
         </nav>
         <div className="sc-header-tools">
           <button
-            className="sc-icon"
+            className="sc-icon sc-menu-toggle"
+            aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={menuOpen}
+            aria-controls="showcase-navigation"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+          <button
+            className="sc-icon sc-search-tool"
             aria-label="Search your library"
             onClick={() => onNavigate("My library")}
           >
@@ -511,6 +586,7 @@ export default function Showcase({
             className="sc-feature-tabs"
             role="tablist"
             aria-label="Reader experience"
+            onKeyDown={navigateTabs}
           >
             {(
               [
@@ -525,6 +601,7 @@ export default function Showcase({
                 id={`experience-tab-${id}`}
                 aria-controls="experience-panel"
                 aria-selected={experience === id}
+                tabIndex={experience === id ? 0 : -1}
                 onClick={() => setExperience(id)}
               >
                 <Icon size={16} />

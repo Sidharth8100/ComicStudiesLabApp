@@ -2709,3 +2709,47 @@ kbd {
 .theme-options > button {
   transition: none;
 }
+
+/* Keep the personal library searchable when its navigation collapses to icons. */
+@media (max-width: 1150px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    height: auto;
+    min-height: 110px;
+    padding-block: 14px;
+  }
+  .topbar-right {
+    display: contents;
+  }
+  .topbar .breadcrumb {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .topbar-right > .icon-button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .topbar .mini-avatar {
+    display: none;
+  }
+  .topbar .search {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    border-bottom: 1px solid var(--line);
+    padding-block: 6px;
+    min-width: 0;
+  }
+  .topbar .search input {
+    max-width: none;
+    min-width: 0;
+    flex: 1;
+    width: 100%;
+    font-size: 13px;
+  }
+  .topbar .search kbd {
+    display: none;
+  }
+}
