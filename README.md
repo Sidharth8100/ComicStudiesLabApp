@@ -71,13 +71,15 @@ An optional external vision adapter is retained for experimentation. It is disab
 
 ### Full stack on Render
 
-`render.yaml` defines a Docker web service with a persistent 10 GB disk. Connect this repository in a Render account and create a Blueprint. This requires a hosting account and billing for the configured plan; no hosting credential is bundled. The production image downloads and verifies models during build, runs as an unprivileged user, and exposes `/api/health` for readiness. A single worker is required because the durable job state currently uses in-process workers and SQLite.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Sidharth8100/ComicStudiesLabApp)
 
-Model weights are retained in the image, while user data persists under `/data`. No API key is required. External vision analysis is separately opt-in and disabled by default. Configure the hosting platform's domain and HTTPS normally.
+Deploy the frontend and backend together at one HTTPS address using `render.yaml`. The Blueprint uses one Pro Docker service and a persistent 10 GB disk; hosting and disk charges are shown in Render before deployment. TTS, OCR and character intelligence remain local and free of API fees.
+
+Follow [the hosting guide](docs/HOSTING.md) to create the service, check readiness, validate the actual public app through **Actions → Verify hosted Panel**, and preserve uploaded comics. No GitHub Pages setup or separate frontend API URL is needed for this path.
 
 ### Frontend on GitHub Pages
 
-`.github/workflows/pages.yml` builds and deploys the frontend on pushes to `main`. GitHub Pages must be enabled for the repository with **GitHub Actions** as the publishing source. A workflow token alone cannot enable Pages on an unconfigured repository.
+`.github/workflows/pages.yml` is optional. Enable Pages publishing in repository settings, then set `PANEL_PAGES_ENABLED=true` to deploy automatically on pushes to `main`, or run the workflow manually. GitHub Pages must be enabled for the repository with **GitHub Actions** as the publishing source. A workflow token alone cannot enable Pages on an unconfigured repository.
 
 For full functionality, set the repository Actions variable `PANEL_API_URL` to your backend's HTTPS origin. Set backend `PANEL_ALLOWED_ORIGINS` to the exact Pages origin (for example, `https://sidharth8100.github.io`). With no backend URL, Pages provides the authored sample and browser narration; uploads require the backend.
 

@@ -2,6 +2,8 @@ services:
   - type: web
     name: panel-comic-reader
     runtime: docker
+    branch: main
+    numInstances: 1
     plan: pro
     healthCheckPath: /api/health
     autoDeployTrigger: checksPass
@@ -10,6 +12,10 @@ services:
       mountPath: /data
       sizeGB: 10
     envVars:
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: PANEL_USE_EXTERNAL_VISION
+        value: "0"
       - key: PANEL_DATA_DIR
         value: /data
       - key: PANEL_MODEL_DIR

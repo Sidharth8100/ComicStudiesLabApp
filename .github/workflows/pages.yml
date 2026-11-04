@@ -12,6 +12,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
+    # The full-stack Render service does not need Pages. Enable this optional
+    # deployment only after configuring Pages in repository settings.
+    if: github.event_name == 'workflow_dispatch' || vars.PANEL_PAGES_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
