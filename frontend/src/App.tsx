@@ -45,6 +45,7 @@ import {
 import { api, media, progressOf, savedBookmarks } from "./api";
 import type { Book, Character, Line } from "./api";
 import voiceCatalog from "./voices.json";
+import Showcase from "./components/Showcase";
 
 const defaultVoiceNames: Record<string, string> = Object.fromEntries(
   Object.entries(voiceCatalog).map(([id, v]) => [
@@ -887,11 +888,17 @@ export default function App() {
       (nav !== "Bookmarks" || bookmarked.includes(b.id)) &&
       b.title.toLowerCase().includes(query.toLowerCase()),
   );
+  const showcasing = !book && nav === "Discover" && !query;
+  const importComic = () => {
+    setUploadOpen(true);
+    setUploadProgress(null);
+    setError("");
+  };
   const currentChar = (line: Line) =>
     book?.characters.find((c) => c.id === line.character);
   return (
     <div
-      className={`app ${book ? "reading" : ""} ${expanded ? "immersive" : ""}`}
+      className={`app ${book ? "reading" : ""} ${expanded ? "immersive" : ""} ${showcasing ? "is-showcase" : ""}`}
     >
       <a className="skip-link" href="#main">
         Skip to content
@@ -905,7 +912,7 @@ export default function App() {
         aria-label="Choose a comic PDF"
         tabIndex={-1}
       />
-      {!book && (
+      {!book && !showcasing && (
         <aside className="sidebar">
           <a
             className="logo"
@@ -991,137 +998,46 @@ export default function App() {
       <div className="main-shell">
         {!book ? (
           <>
-            <header className="topbar">
-              <div className="breadcrumb">
-                Your space <span>/</span> <b>{nav}</b>
-              </div>
-              <div className="topbar-right">
-                <label className="search">
-                  <Search size={17} />
-                  <input
-                    placeholder="Find your next story"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    aria-label="Search your library"
-                  />
-                  <kbd>/</kbd>
-                </label>
-                <IconButton
-                  label="Reading preferences"
-                  onClick={() => setSettings(true)}
-                >
-                  <SlidersHorizontal size={19} />
-                </IconButton>
-                <span className="mini-avatar">Y</span>
-              </div>
-            </header>
+            {!showcasing && (
+              <header className="topbar">
+                <div className="breadcrumb">
+                  Your space <span>/</span> <b>{nav}</b>
+                </div>
+                <div className="topbar-right">
+                  <label className="search">
+                    <Search size={17} />
+                    <input
+                      placeholder="Find your next story"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      aria-label="Search your library"
+                    />
+                    <kbd>/</kbd>
+                  </label>
+                  <IconButton
+                    label="Reading preferences"
+                    onClick={() => setSettings(true)}
+                  >
+                    <SlidersHorizontal size={19} />
+                  </IconButton>
+                  <span className="mini-avatar">Y</span>
+                </div>
+              </header>
+            )}
             <main id="main" className="library-main">
-              {nav === "Discover" && !query && (
-                <>
-                  <section className="hero">
-                    <div className="hero-copy">
-                      <span className="eyebrow">
-                        <span className="green-dot" /> A LITTLE ESCAPE. A LOT OF
-                        POSSIBILITY.
-                      </span>
-                      <h1>
-                        Every panel.
-                        <br />A whole new
-                        <br />
-                        <em>world.</em>
-                        <span className="hero-star">✳</span>
-                      </h1>
-                      <p>
-                        Your favorite comics, brought to life.
-                        <br />
-                        Turn the page. Meet the voices. Get lost in the story.
-                      </p>
-                      <div className="hero-actions">
-                        <button
-                          className="button primary"
-                          onClick={() => {
-                            setUploadOpen(true);
-                            setUploadProgress(null);
-                            setError("");
-                          }}
-                        >
-                          <Plus size={18} /> Import your comic{" "}
-                          <ArrowUpRight size={17} />
-                        </button>
-                        <button
-                          className="text-button"
-                          onClick={openDemo}
-                          disabled={busy}
-                        >
-                          Explore a story <ArrowRight size={17} />
-                        </button>
-                      </div>
-                      <div className="hero-foot">
-                        <span className="stacked-avatars">
-                          <i>N</i>
-                          <i>E</i>
-                          <i>✦</i>
-                        </span>
-                        <span>
-                          A different voice for every character.
-                          <br />
-                          <strong>A story that sounds like no other.</strong>
-                        </span>
-                      </div>
-                    </div>
-                    <div
-                      className="hero-art"
-                      role="img"
-                      aria-label="An original science-fiction comic with Nova and her robot companion"
-                    >
-                      <span className="art-orbit orbit-one" />
-                      <span className="art-orbit orbit-two" />
-                      <span className="art-spark spark-one">✧</span>
-                      <span className="art-spark spark-two">+</span>
-                      <div className="hero-book">
-                        <img
-                          src="./comic-0.svg"
-                          alt="After the Light, issue one"
-                        />
-                        <span className="book-spine" />
-                      </div>
-                      <div className="art-label">
-                        <span className="sound-bars">
-                          <i />
-                          <i />
-                          <i />
-                          <i />
-                          <i />
-                        </span>
-                        <span>
-                          More than a comic.<strong>A whole experience.</strong>
-                        </span>
-                        <span className="label-check">
-                          <Check size={15} />
-                        </span>
-                      </div>
-                      <span className="issue-label">
-                        THE NEXT CHAPTER IS YOURS ↗
-                      </span>
-                    </div>
-                  </section>
-                  <div className="feature-strip">
-                    <span>
-                      <BookOpen size={18} /> Pages that feel like paper
-                    </span>
-                    <i />
-                    <span>
-                      <Headphones size={18} /> Characters with a voice
-                    </span>
-                    <i />
-                    <span>
-                      <Eye size={18} /> Made for every reader
-                    </span>
-                    <span className="strip-end">
-                      STORIES, WITHOUT LIMITS <ArrowUpRight size={15} />
-                    </span>
-                  </div>
-                </>
+              {showcasing && (
+                <Showcase
+                  onImport={importComic}
+                  onExplore={openDemo}
+                  onPreferences={() => setSettings(true)}
+                  onNavigate={(n) => {
+                    setNav(n);
+                    setQuery("");
+                    window.scrollTo({ top: 0, behavior: "instant" });
+                  }}
+                  busy={busy}
+                  reducedMotion={prefs.motion}
+                />
               )}
               <section className="shelf" id="shelf">
                 <div className="section-heading">
