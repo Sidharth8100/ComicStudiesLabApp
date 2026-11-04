@@ -36,6 +36,7 @@ The setup command connects your own account through Modal's supported authentica
 - A comic can remain available across page refreshes while the same server container is active. This is a stateful reading session on **ephemeral storage**, not an independent stateless request for every page.
 - Inactivity, redeployment or platform recycling can remove all uploaded comics and edits. Idle shutdown timing is controlled by the platform, not an exact deletion timer.
 - Everyone keeps their original PDF. This mode provides neither backups nor permanent library recovery. A browser's saved key and bookmarks cannot recover files after the container disappears.
+- A visible, open reader sends a lightweight heartbeat to preserve the active session. Leaving the reader or hiding the tab stops that keep-alive traffic, allowing idle shutdown. Keeping a reading session open can consume compute allowance.
 - A visit after scale-down starts a fresh container and may involve a cold start. The next user must reimport a PDF if the old container was removed.
 - A single container keeps a PDF's pages, character registry and assigned voices together while it is active. Adding replicas would require a shared store or a different architecture.
 - Closing a browser tab is not an immediate deletion request. The existing comic-delete control remains available for immediate deletion of a finished comic.

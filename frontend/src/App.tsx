@@ -439,7 +439,11 @@ export default function App() {
     useState<Record<string, string>>(defaultVoiceNames);
   const [emotionNames, setEmotionNames] = useState<string[]>(defaultEmotions);
   const [mergeTarget, setMergeTarget] = useState("");
+  const [temporaryStorage, setTemporaryStorage] = useState(false);
   useEffect(() => {
+    api<{ storage?: string }>("/health")
+      .then((health) => setTemporaryStorage(health.storage === "temporary"))
+      .catch(() => {});
     api<Record<string, { name: string; description: string }>>("/voices")
       .then((v) =>
         setVoiceNames(
@@ -456,6 +460,21 @@ export default function App() {
       .then(setEmotionNames)
       .catch(() => {});
   }, []);
+  // Ephemeral hosts can scale down between page turns. Keep a visible reading
+  // session warm; leaving the reader or hiding the tab allows idle shutdown.
+  useEffect(() => {
+    if (!temporaryStorage || !book || book.id === "sample") return;
+    const keepSession = () => {
+      if (document.visibilityState === "visible")
+        api("/health").catch(() => {});
+    };
+    const heartbeat = window.setInterval(keepSession, 25000);
+    document.addEventListener("visibilitychange", keepSession);
+    return () => {
+      window.clearInterval(heartbeat);
+      document.removeEventListener("visibilitychange", keepSession);
+    };
+  }, [temporaryStorage, book?.id]);
   useEffect(() => setMergeTarget(""), [castEdit?.id]);
   const input = useRef<HTMLInputElement>(null),
     audio = useRef<HTMLAudioElement | null>(null),
@@ -1044,6 +1063,12 @@ export default function App() {
                 />
               )}
               <section className="shelf" id="shelf">
+                {temporaryStorage && (
+                  <p className="temporary-storage-notice">
+                    Temporary demo library. Comics and voice edits disappear
+                    when this server is recycled. Keep your original PDF.
+                  </p>
+                )}
                 <div className="section-heading">
                   <div>
                     <span className="eyebrow">
@@ -1678,6 +1703,13 @@ export default function App() {
           <p className="modal-description">
             Your comic. Your cast. Your own little escape.
           </p>
+          {temporaryStorage && (
+            <p className="temporary-storage-notice">
+              This is a temporary demo. Your PDF and cast stay available while
+              the server is active and can disappear when it shuts down. Keep
+              your original file.
+            </p>
+          )}
           {uploadProgress ? (
             <div className="processing">
               <div className="processing-icon">

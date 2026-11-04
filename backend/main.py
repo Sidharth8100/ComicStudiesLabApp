@@ -377,6 +377,7 @@ def health():
         "voiceCount": len(VOICES),
         "emotionCount": len(EMOTIONS),
         "sentimentEngine": "vader",
+        "storage": "temporary" if os.getenv("PANEL_EPHEMERAL_STORAGE") == "1" else "persistent",
     }
 
 

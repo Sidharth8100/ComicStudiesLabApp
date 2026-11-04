@@ -47,6 +47,14 @@ def test_health_and_auth():
     )
 
 
+@pytest.mark.parametrize("temporary", [False, True])
+def test_health_reports_hosting_storage_mode(monkeypatch, temporary):
+    monkeypatch.setenv("PANEL_EPHEMERAL_STORAGE", "1" if temporary else "0")
+    assert client.get("/api/health").json()["storage"] == (
+        "temporary" if temporary else "persistent"
+    )
+
+
 def test_invalid_pdf_is_cleaned_up():
     before = set(DATA.iterdir())
     assert upload(b"not a PDF").status_code == 400

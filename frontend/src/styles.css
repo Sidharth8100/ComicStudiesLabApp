@@ -2753,3 +2753,14 @@ kbd {
     display: none;
   }
 }
+
+.temporary-storage-notice {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 14px 16px;
+  font-size: 12px;
+  line-height: 1.65;
+  margin: 0 0 22px;
+}

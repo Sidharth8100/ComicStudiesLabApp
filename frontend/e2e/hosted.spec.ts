@@ -147,3 +147,45 @@ test("hosted discovery, PDF import, private media and real narration work togeth
     }
   }
 });
+
+test("temporary hosting discloses upload loss before a PDF is selected", async ({
+  page,
+}) => {
+  await page.route("**/api/health", (route) =>
+    route.fulfill({ json: { storage: "temporary" } }),
+  );
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Import your comic", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog").getByText(/This is a temporary demo/),
+  ).toContainText("Keep your original file.");
+  await page.getByRole("button", { name: "Close dialog" }).click();
+  await expect(page.getByText(/Temporary demo library/)).toBeVisible();
+});
+
+test("an ephemeral reader stays warm while open and releases the server on return to library", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.clock.install();
+  let heartbeats = 0;
+  await page.route("**/api/health", async (route) => {
+    heartbeats++;
+    await route.fulfill({ json: { storage: "temporary" } });
+  });
+  await page.goto("/");
+  await expect.poll(() => heartbeats).toBe(1);
+  await page.getByRole("button", { name: "Explore a story" }).click();
+  await expect(page.locator(".reader-topbar")).toBeVisible();
+  await page.clock.fastForward(26000);
+  await expect.poll(() => heartbeats).toBeGreaterThan(1);
+  await page.getByRole("button", { name: "Library", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: /Every panel/ }),
+  ).toBeVisible();
+  const released = heartbeats;
+  await page.clock.fastForward(26000);
+  expect(heartbeats).toBe(released);
+});
