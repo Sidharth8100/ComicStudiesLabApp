@@ -19,6 +19,7 @@ export default function BookSculpture({ reducedMotion }: Props) {
     const element = host.current;
     if (!element) return;
     let disposed = false;
+    let failed = false;
     let cleanup = () => {};
     // Keep the reading interface free of the WebGL bundle and GPU work.
     const load = async () => {
@@ -38,6 +39,10 @@ export default function BookSculpture({ reducedMotion }: Props) {
         renderer.toneMappingExposure = 1.45;
         renderer.domElement.setAttribute("aria-hidden", "true");
         element.appendChild(renderer.domElement);
+        cleanup = () => {
+          renderer.dispose();
+          renderer.domElement.remove();
+        };
         const scene = new T.Scene();
         const camera = new T.PerspectiveCamera(32, 1, 0.1, 40);
         camera.position.set(0, 0.22, 6.15);
@@ -117,7 +122,7 @@ export default function BookSculpture({ reducedMotion }: Props) {
         const coverTexture = loader.load(
           "./comic-0.svg",
           () => {
-            if (disposed) return;
+            if (disposed || failed) return;
             coverTexture.colorSpace = T.SRGBColorSpace;
             coverTexture.anisotropy = Math.min(
               8,
@@ -131,6 +136,8 @@ export default function BookSculpture({ reducedMotion }: Props) {
           undefined,
           () => {
             if (!disposed) {
+              failed = true;
+              if (frame) cancelAnimationFrame(frame);
               setFallback(true);
               setReady(false);
             }
@@ -187,7 +194,7 @@ export default function BookSculpture({ reducedMotion }: Props) {
           reduced.current ||
           matchMedia("(prefers-reduced-motion: reduce)").matches;
         function draw(time = 0) {
-          if (disposed) return;
+          if (disposed || failed) return;
           const calm = prefersReduced();
           yaw += (targetYaw - yaw) * (calm ? 1 : 0.09);
           pitch += (targetPitch - pitch) * (calm ? 1 : 0.09);
@@ -209,7 +216,7 @@ export default function BookSculpture({ reducedMotion }: Props) {
         }
         const animate = (time: number) => {
           frame = 0;
-          if (disposed || !active || document.hidden) return;
+          if (disposed || failed || !active || document.hidden) return;
           draw(time);
           if (
             !prefersReduced() ||
@@ -219,7 +226,7 @@ export default function BookSculpture({ reducedMotion }: Props) {
             frame = requestAnimationFrame(animate);
         };
         const wake = () => {
-          if (!frame && active && !document.hidden)
+          if (!frame && !failed && active && !document.hidden)
             frame = requestAnimationFrame(animate);
         };
         const resize = new ResizeObserver(() => {
@@ -252,6 +259,15 @@ export default function BookSculpture({ reducedMotion }: Props) {
           } else wake();
         };
         document.addEventListener("visibilitychange", visibility);
+        const contextLost = (event: Event) => {
+          event.preventDefault();
+          failed = true;
+          if (frame) cancelAnimationFrame(frame);
+          frame = 0;
+          setReady(false);
+          setFallback(true);
+        };
+        renderer.domElement.addEventListener("webglcontextlost", contextLost);
         const scrollHandler = () => {
           scroll = Math.max(
             0,
@@ -340,12 +356,18 @@ export default function BookSculpture({ reducedMotion }: Props) {
               materials.forEach((m) => m.dispose());
             }
           });
+          renderer.domElement.removeEventListener(
+            "webglcontextlost",
+            contextLost,
+          );
           renderer.dispose();
           renderer.domElement.remove();
           controls.current = () => {};
         };
         wake();
       } catch {
+        failed = true;
+        cleanup();
         if (!disposed) setFallback(true);
       }
     };
@@ -412,13 +434,25 @@ export default function BookSculpture({ reducedMotion }: Props) {
             : "Drag to discover another side"}
         </span>
         <div className="sc-orbit-controls" aria-label="Book rotation controls">
-          <button aria-label="Rotate book left" onClick={() => act("left")}>
+          <button
+            aria-label="Rotate book left"
+            disabled={!ready && !fallback}
+            onClick={() => act("left")}
+          >
             <ArrowLeft size={15} />
           </button>
-          <button aria-label="Reset book view" onClick={() => act("reset")}>
+          <button
+            aria-label="Reset book view"
+            disabled={!ready && !fallback}
+            onClick={() => act("reset")}
+          >
             <RotateCcw size={13} />
           </button>
-          <button aria-label="Rotate book right" onClick={() => act("right")}>
+          <button
+            aria-label="Rotate book right"
+            disabled={!ready && !fallback}
+            onClick={() => act("right")}
+          >
             <ArrowRight size={15} />
           </button>
         </div>
