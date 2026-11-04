@@ -4,6 +4,7 @@ An accessible comic library and PDF reader, with physical page turning, editable
 
 ## What works
 
+- Explore a full-width, cinematic discovery page with an original Three.js book you can drag or rotate with the keyboard, interactive reader scenes, scroll-linked depth and a working character voice studio. Reduced motion, offscreen GPU pausing and a CSS cover fallback keep it usable across devices.
 - Import a PDF (up to 40 MB / 100 pages), track processing and resume from your last page.
 - Turn physical-looking pages with drag, swipe, buttons, keyboard arrows or a page slider. Single-page and reduced-motion modes are available.
 - Extract native PDF text, with CPU EasyOCR for scanned pages. Assign stable character codes and edit speaker assignments, dialogue and emotions.
@@ -33,6 +34,13 @@ bash scripts/start-cloud.sh
 The setup script prepares `/workspace/comicstudies-env`, builds the UI, verifies/downloads Kokoro weights and caches OCR weights. It uses the existing checkout and does not create worktrees. The startup script binds to loopback for development. Active server processes must be restarted in fresh tasks.
 
 For separate frontend development, run `npm run dev --prefix frontend` alongside the backend. Vite proxies `/api` to loopback port 8000. Backend changes require a server restart (or `uvicorn --reload` during local development).
+
+
+## The discovery experience
+
+The discovery page uses original comic artwork and a custom procedural 3D book, with no third-party models, remote image service or tracking scripts. Drag the book or use its three rotation buttons. The reader-feature and character-preview tabs support arrow keys, Home and End. Voice previews request the real sample dialogue from the backend; when the backend is unavailable, any browser-speech preview is explicitly labeled.
+
+The graphics load near the viewport, stop rendering offscreen or in a hidden browser tab, and cap display pixel density. OS-level reduced motion and the in-app setting stop automatic motion while preserving the controls. If WebGL is unavailable or its context is lost, a textured CSS cover remains interactive. The actual reader uses its existing paper-turn renderer and can switch to a simple image view independently.
 
 ## Free local character intelligence
 
@@ -85,7 +93,7 @@ python scripts/make_test_pdf.py
 npm run test:e2e --prefix frontend
 ```
 
-The browser tests cover a real upload, edited transcript, physical page turns, cast voice edits, keyboard navigation, mobile overflow, narration controls and automated WCAG A/AA checks of the library and reader. API tests cover invalid/encrypted PDFs, page limits, ownership isolation, image retrieval, editable casting, speech WAV generation and scanned-image OCR when cached models are available. Automated accessibility checks do not replace testing with screen readers and disabled readers.
+The browser tests cover a real upload, edited transcript, physical page turns, cast voice edits, keyboard navigation, mobile overflow, narration controls and automated WCAG A/AA checks of the library and reader. Discovery checks exercise real voice previews, arrow-key feature tabs, book rotation, mobile navigation/search, reduced motion, dark/high-contrast scenes and a deliberately unavailable WebGL context. A separate Pages-style subpath test verifies that static assets and API calls also work when frontend and backend have different origins. API tests cover invalid/encrypted PDFs, page limits, ownership isolation, image retrieval, editable casting, speech WAV generation and scanned-image OCR when cached models are available. Automated accessibility checks do not replace testing with screen readers and disabled readers.
 
 Local Chromium defaults to `/usr/bin/chromium`. Set `CHROMIUM_PATH` to override it. CI installs Playwright's Chromium. Failed browser tests save screenshots and accessibility context in `frontend/test-results/`.
 
@@ -93,6 +101,8 @@ Local Chromium defaults to `/usr/bin/chromium`. Set `CHROMIUM_PATH` to override 
 
 - `frontend/src/App.tsx` — library, reader, cast studio, import flow and accessibility controls.
 - `frontend/src/styles.css` — responsive editorial interface and reading themes.
+- `frontend/src/components/Showcase.tsx` and `showcase.css` — cinematic discovery scenes, accessible feature tabs and real character voice previews.
+- `frontend/src/components/BookSculpture.tsx` — lazy-loaded, locally textured 3D book with pointer/keyboard controls, visibility-based rendering and a WebGL fallback.
 - `backend/main.py` — private library API, PDF extraction, OCR and optional vision analysis.
 - `backend/speech.py` — neural voice synthesis and sentiment-scaled expressive prosody.
 - `backend/casting.py` — free local visual embeddings, balloon crop proposals and global identity matching.

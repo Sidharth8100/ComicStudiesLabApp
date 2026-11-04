@@ -3,6 +3,7 @@
 Panel's application interface, generated sample story and illustrations were created for this repository. The original research notebooks remain unchanged and retain their original authorship.
 
 - Realistic page turns use [StPageFlip](https://github.com/Nodlik/StPageFlip), MIT. Its README and documented canvas API were reviewed during implementation. No third-party reader interface was copied.
+- [Three.js](https://threejs.org/) (MIT) renders the custom 3D discovery book. Its geometry, textures and original character portraits are generated from this repository's authored sample artwork; no external model or product-page assets are included.
 - React, Vite, Lucide icons, DM Sans and Manrope provide the interface foundations. Font files are self-hosted through Fontsource; font licenses are included in those packages (SIL Open Font License).
 - [Kokoro ONNX](https://github.com/thewh1teagle/kokoro-onnx) provides the local neural speech runtime. Runtime license: MIT. Kokoro model: Apache 2.0. Model files come from the upstream official release, with pinned SHA-256 digests in scripts/models.json. The upstream voices are synthetic presets, not voice clones of uploaded characters.
 - eSpeak NG (GPL-3.0-or-later) is the optional subprocess fallback. FFmpeg distribution licenses depend on the platform build; neither executable is vendored in this source repository.
